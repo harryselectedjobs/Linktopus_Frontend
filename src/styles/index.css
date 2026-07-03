@@ -1,0 +1,75 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply font-body text-ink antialiased;
+  }
+  body {
+    @apply bg-surface;
+  }
+  h1, h2, h3, h4 {
+    @apply font-display text-ink;
+  }
+  :focus-visible {
+    @apply outline-none ring-2 ring-spark/60 ring-offset-2 ring-offset-surface;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-primary px-6 py-3
+      font-display text-sm font-semibold text-white shadow-card transition-all duration-200
+      hover:bg-primary-600 hover:shadow-card-hover active:scale-[0.98]
+      disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-surface-border
+      bg-white px-6 py-3 font-display text-sm font-semibold text-ink transition-all duration-200
+      hover:border-primary-300 hover:bg-primary-50 active:scale-[0.98];
+  }
+
+  .input-field {
+    @apply w-full rounded-xl border border-surface-border bg-surface px-4 py-3 text-sm text-ink
+      placeholder:text-slate-light transition-colors duration-150
+      focus:border-primary-300 focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary-100;
+  }
+
+  .field-label {
+    @apply mb-1.5 block font-display text-sm font-semibold text-ink;
+  }
+
+  .card {
+    @apply rounded-2xl border border-surface-border bg-surface-card shadow-card;
+  }
+
+  .card-glow {
+    @apply relative overflow-hidden rounded-2xl border border-surface-border bg-surface-card shadow-card
+      transition-all duration-300 hover:-translate-y-0.5 hover:shadow-card-hover;
+  }
+
+  .section-label {
+    @apply font-display text-xs font-semibold uppercase tracking-[0.14em] text-primary;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full bg-primary-50 px-2.5 py-1 font-display
+      text-[11px] font-semibold uppercase tracking-wide text-primary;
+  }
+
+  .badge-muted {
+    @apply inline-flex items-center gap-1 rounded-full bg-surface px-2.5 py-1 font-display
+      text-[11px] font-semibold uppercase tracking-wide text-slate-light;
+  }
+
+  /* Node/connection motif — echoes the circuit glyph in the Linktopus mark */
+  .node-dot {
+    @apply relative inline-flex h-2 w-2 rounded-full bg-spark;
+  }
+  .node-dot::after {
+    content: "";
+    @apply absolute inset-0 rounded-full bg-spark animate-pulse-node;
+  }
+}
