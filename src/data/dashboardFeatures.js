@@ -10,11 +10,14 @@ export const dashboardFeatures = [
     to: "/post-assistant",
   },
   {
-    key: "analytics",
-    title: "Analytics",
-    description: "Post performance, reach, and engagement trends",
-    icon: "BarChart3",
-    status: "soon",
+    key: "project-automation",
+    title: "Project Automation",
+    description:
+      "Search LinkedIn job criteria and build a candidate outreach campaign for a recruiting project.",
+    icon: "Briefcase",
+    status: "active",
+    cta: "Get started",
+    to: "/project-automation",
   },
   {
     key: "content-calendar",
