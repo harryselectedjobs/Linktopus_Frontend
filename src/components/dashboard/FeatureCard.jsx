@@ -1,8 +1,16 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import { Sparkles, BarChart3, CalendarDays, Users, Bell, ArrowRight } from "lucide-react";
+import {
+  Sparkles,
+  BarChart3,
+  CalendarDays,
+  Users,
+  Bell,
+  Briefcase,
+  ArrowRight,
+} from "lucide-react";
 
-const ICONS = { Sparkles, BarChart3, CalendarDays, Users, Bell };
+const ICONS = { Sparkles, BarChart3, CalendarDays, Users, Bell, Briefcase };
 
 const cardVariants = {
   hidden: { opacity: 0, y: 16 },

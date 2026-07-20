@@ -6,6 +6,7 @@ import AppLayout from "./components/layout/AppLayout";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import PostAssistant from "./pages/PostAssistant";
+import ProjectAutomation from "./pages/ProjectAutomation";
 import ComingSoon from "./pages/ComingSoon";
 import NotFound from "./pages/NotFound";
 
@@ -51,6 +52,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <PostAssistant />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/project-automation"
+          element={
+            <ProtectedRoute>
+              <ProjectAutomation />
             </ProtectedRoute>
           }
         />
