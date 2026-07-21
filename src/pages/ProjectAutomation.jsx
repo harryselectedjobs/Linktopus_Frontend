@@ -3,9 +3,12 @@ import { Link } from "react-router-dom";
 import {
   ArrowLeft,
   Briefcase,
+  CheckCircle2,
+  ExternalLink,
   Loader2,
   Rocket,
   UserCircle2,
+  XCircle,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { runAutomation } from "../services/projectAutomation";
@@ -51,6 +54,32 @@ function ReadOnlyField({ label, value }) {
   );
 }
 
+function StatTile({ label, value }) {
+  return (
+    <div className="rounded-xl bg-surface p-3">
+      <p className="font-display text-xs font-medium text-slate-light">
+        {label}
+      </p>
+      <p className="mt-1 font-display text-lg font-bold text-ink">
+        {value ?? "—"}
+      </p>
+    </div>
+  );
+}
+
+function ActionBadge({ label, ok }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-display text-[11px] font-semibold ${
+        ok ? "bg-primary-50 text-primary-700" : "bg-spark/10 text-[#B8402A]"
+      }`}
+    >
+      {ok ? <CheckCircle2 size={12} /> : <XCircle size={12} />}
+      {label}
+    </span>
+  );
+}
+
 export default function ProjectAutomation() {
   const { email } = useAuth();
 
@@ -72,12 +101,14 @@ export default function ProjectAutomation() {
   const [seniorityInclude, setSeniorityInclude] = useState([]);
   const [seniorityExclude, setSeniorityExclude] = useState([]);
   const [candidateLocationId, setCandidateLocationId] = useState("");
+  const [maxCandidates, setMaxCandidates] = useState(5);
 
   const [inmailMessage, setInmailMessage] = useState("");
   const [connectionNote, setConnectionNote] = useState("");
 
   const [isRunning, setIsRunning] = useState(false);
   const [toast, setToast] = useState(null);
+  const [campaignResult, setCampaignResult] = useState(null);
 
   function toggleInclude(bucket) {
     setSeniorityInclude((prev) => {
@@ -101,40 +132,50 @@ export default function ProjectAutomation() {
   async function handleRunAutomation() {
     if (isRunning) return;
     setIsRunning(true);
+    setCampaignResult(null);
     try {
-      await runAutomation({
-        job_title_id: jobTitle.id,
-        job_title: jobTitle.title,
-        company_id: company.id,
-        company: company.title,
-        location_id: jobLocation.id,
-        location: jobLocation.title,
-        workplace,
-        employment_status: employmentStatus,
-        description,
-        project_name: projectName,
-        job_seniority: jobSeniority,
-        function_id: searchFunction.id,
-        function_name: searchFunction.title,
-        industry_id: industry.id,
-        industry_name: industry.title,
-        apply_method: applyMethod,
-        notification_email: notificationEmail,
-        resume_required: resumeRequired,
-        seniority_include: seniorityInclude,
-        seniority_exclude: seniorityExclude,
-        candidate_search_location_id: candidateLocationId,
-        inmail_message: inmailMessage,
-        connection_invite_note: connectionNote,
+      const seniority = { include: seniorityInclude };
+      if (seniorityExclude.length > 0) seniority.exclude = seniorityExclude;
+
+      const data = await runAutomation({
+        payload: {
+          job_title: { id: jobTitle.id, text: jobTitle.title },
+          company: { id: company.id, text: company.title },
+          workplace,
+          recruiter: {
+            project: { name: projectName },
+            functions: searchFunction.id ? [searchFunction.id] : [],
+            industries: industry.id ? [industry.id] : [],
+            seniority: jobSeniority,
+            apply_method: {
+              type: "linkedin",
+              resume_required: resumeRequired,
+              notification_email: notificationEmail,
+            },
+          },
+          account_id: import.meta.env.VITE_UNIPILE_ACCOUNT_ID,
+          location: jobLocation.id,
+          employment_status: employmentStatus,
+          description,
+        },
+        seniority,
+        inmailMessage,
+        noteMessage: connectionNote,
+        candidateSearchLocation: candidateLocationId,
+        max_candidates: maxCandidates,
       });
-      setToast({ type: "success", message: "Automation started." });
+      setCampaignResult(data);
+      setToast({
+        type: "success",
+        message: "Automation completed successfully.",
+      });
     } catch (err) {
       setToast({
         type: "error",
         message:
           err.response?.data?.detail ||
           err.response?.data?.message ||
-          "Couldn't start the automation.",
+          "Couldn't run the automation.",
       });
     } finally {
       setIsRunning(false);
@@ -402,10 +443,24 @@ export default function ProjectAutomation() {
               modalTitle="Select a location"
               onSelect={(item) => setCandidateLocationId(item.id)}
             />
-            <ReadOnlyField
-              label="Candidate Search Location ID"
-              value={candidateLocationId}
-            />
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <ReadOnlyField
+                label="Candidate Search Location ID"
+                value={candidateLocationId}
+              />
+              <div>
+                <label className="field-label">Max Candidates</label>
+                <input
+                  type="number"
+                  min={1}
+                  value={maxCandidates}
+                  onChange={(e) =>
+                    setMaxCandidates(Math.max(1, Number(e.target.value) || 1))
+                  }
+                  className="input-field"
+                />
+              </div>
+            </div>
           </div>
 
           <hr className="my-6 border-surface-border" />
@@ -448,9 +503,79 @@ export default function ProjectAutomation() {
             ) : (
               <Rocket size={16} />
             )}
-            Run Automation
+            {isRunning ? "Running Automation..." : "Run Automation"}
           </button>
         </section>
+
+        {/* Results */}
+        {campaignResult && (
+          <section className="card animate-fade-up p-6">
+            <div className="flex items-center gap-2 text-primary-700">
+              <CheckCircle2 size={20} />
+              <h2 className="font-display text-lg font-bold text-ink">
+                Automation Complete
+              </h2>
+            </div>
+
+            <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <StatTile label="Job ID" value={campaignResult.job?.job_id} />
+              <StatTile
+                label="Project ID"
+                value={campaignResult.job?.project_id}
+              />
+              <StatTile
+                label="Candidates Found"
+                value={campaignResult.total_candidates_found}
+              />
+              <StatTile
+                label="Candidates Processed"
+                value={campaignResult.candidates_processed}
+              />
+            </div>
+
+            {campaignResult.results?.length > 0 && (
+              <div className="mt-6 flex flex-col gap-3">
+                {campaignResult.results.map((candidate) => (
+                  <div
+                    key={candidate.id}
+                    className="rounded-xl border border-surface-border p-4"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="font-display text-sm font-semibold text-ink">
+                        {candidate.name}
+                      </p>
+                      {candidate.public_identifier && (
+                        <a
+                          href={`https://www.linkedin.com/in/${candidate.public_identifier}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-primary hover:underline"
+                        >
+                          View profile
+                          <ExternalLink size={11} />
+                        </a>
+                      )}
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <ActionBadge
+                        label="Added to Pipeline"
+                        ok={Boolean(candidate.add_to_pipeline?.body?.success)}
+                      />
+                      <ActionBadge
+                        label="InMail Sent"
+                        ok={candidate.inmail?.status_code === 201}
+                      />
+                      <ActionBadge
+                        label="Invite Sent"
+                        ok={candidate.invite?.status_code === 201}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
       </div>
 
       <Toast toast={toast} />
