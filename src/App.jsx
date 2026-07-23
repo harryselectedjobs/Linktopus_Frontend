@@ -4,6 +4,7 @@ import ProtectedRoute from "./components/layout/ProtectedRoute";
 import AppLayout from "./components/layout/AppLayout";
 
 import Login from "./pages/Login";
+import CalendarBooking from "./pages/CalendarBooking";
 import Dashboard from "./pages/Dashboard";
 import PostAssistant from "./pages/PostAssistant";
 import ProjectAutomation from "./pages/ProjectAutomation";
@@ -16,6 +17,9 @@ export default function App() {
       <Routes>
         {/* ---------- Auth ---------- */}
         <Route path="/login" element={<Login />} />
+
+        {/* ---------- Public booking link (shared with external users) ---------- */}
+        <Route path="/calendar-booking" element={<CalendarBooking />} />
 
         {/* ---------- Protected app ---------- */}
         <Route
