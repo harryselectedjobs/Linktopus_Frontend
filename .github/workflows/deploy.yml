@@ -20,6 +20,13 @@ jobs:
 
             git pull origin main
 
+            cat > .env << EOF
+            VITE_API_BASE_URL=${{ secrets.VITE_API_BASE_URL }}
+            VITE_UNIPILE_BASE_URL=${{ secrets.VITE_UNIPILE_BASE_URL }}
+            VITE_UNIPILE_API_KEY=${{ secrets.VITE_UNIPILE_API_KEY }}
+            VITE_UNIPILE_ACCOUNT_ID=${{ secrets.VITE_UNIPILE_ACCOUNT_ID }}
+            EOF
+
             npm install
             npm run build
 
