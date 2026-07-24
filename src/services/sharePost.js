@@ -14,10 +14,18 @@ export async function publishPost(postText) {
   return data;
 }
 
-export async function schedulePost(postText, postDate) {
+export async function publishPostToPage(postText) {
+  const { data } = await api.post("/share-post/page", {
+    text: postText,
+  });
+  return data;
+}
+
+export async function schedulePost(postText, postDate, accountType = "account") {
   const { data } = await api.post("/share-post/schedule-posts", {
     post_text: postText,
     post_date: postDate,
+    account_type: accountType,
   });
   return data;
 }

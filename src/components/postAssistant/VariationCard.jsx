@@ -1,18 +1,53 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Pencil, Check, Share2, CalendarClock, Loader2 } from "lucide-react";
+import {
+  Pencil,
+  Check,
+  Share2,
+  CalendarClock,
+  Loader2,
+  ChevronDown,
+  Building2,
+  User,
+} from "lucide-react";
 
 export default function VariationCard({ index, text, onShare, onSchedule }) {
   const [editedText, setEditedText] = useState(text);
   const [isEditing, setIsEditing] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
   const [shareStatus, setShareStatus] = useState(null);
+  const [shareMenuOpen, setShareMenuOpen] = useState(false);
+  const [scheduleMenuOpen, setScheduleMenuOpen] = useState(false);
+  const shareMenuRef = useRef(null);
+  const scheduleMenuRef = useRef(null);
 
-  async function handleShare() {
+  useEffect(() => {
+    function onClickOutside(e) {
+      if (shareMenuRef.current && !shareMenuRef.current.contains(e.target)) {
+        setShareMenuOpen(false);
+      }
+      if (
+        scheduleMenuRef.current &&
+        !scheduleMenuRef.current.contains(e.target)
+      ) {
+        setScheduleMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, []);
+
+  function handleSchedule(accountType) {
+    setScheduleMenuOpen(false);
+    onSchedule(editedText, accountType);
+  }
+
+  async function handleShare(target) {
+    setShareMenuOpen(false);
     setIsSharing(true);
     setShareStatus(null);
     try {
-      await onShare(editedText);
+      await onShare(editedText, target);
       setShareStatus("success");
     } catch {
       setShareStatus("error");
@@ -66,28 +101,82 @@ export default function VariationCard({ index, text, onShare, onSchedule }) {
       </div>
 
       <div className="mt-auto flex flex-wrap items-center gap-2.5 border-t border-surface-border px-5 py-4">
-        <button
-          type="button"
-          onClick={handleShare}
-          disabled={isSharing || isEditing || !editedText.trim()}
-          className="inline-flex items-center justify-center gap-1.5 rounded-full bg-ink px-4 py-2 font-display text-xs font-semibold text-white transition-all duration-200 hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {isSharing ? (
-            <Loader2 size={14} className="animate-spin" />
-          ) : (
-            <Share2 size={14} />
+        <div className="relative" ref={shareMenuRef}>
+          <button
+            type="button"
+            onClick={() => setShareMenuOpen((v) => !v)}
+            disabled={isSharing || isEditing || !editedText.trim()}
+            className="inline-flex items-center justify-center gap-1.5 rounded-full bg-ink px-4 py-2 font-display text-xs font-semibold text-white transition-all duration-200 hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isSharing ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <Share2 size={14} />
+            )}
+            {isSharing ? "Sharing…" : "Share Now"}
+            {!isSharing && <ChevronDown size={12} />}
+          </button>
+
+          {shareMenuOpen && (
+            <div className="absolute left-0 bottom-full z-10 mb-2 w-44 overflow-hidden rounded-xl border border-surface-border bg-white shadow-card-hover">
+              <p className="border-b border-surface-border px-3.5 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-light">
+                Share to
+              </p>
+              <button
+                type="button"
+                onClick={() => handleShare("post")}
+                className="flex w-full items-center gap-2 px-3.5 py-2.5 text-left text-xs font-medium text-ink transition-colors hover:bg-primary-50"
+              >
+                <User size={14} className="text-slate-light" />
+                Account
+              </button>
+              <button
+                type="button"
+                onClick={() => handleShare("page")}
+                className="flex w-full items-center gap-2 px-3.5 py-2.5 text-left text-xs font-medium text-ink transition-colors hover:bg-primary-50"
+              >
+                <Building2 size={14} className="text-slate-light" />
+                Page
+              </button>
+            </div>
           )}
-          {isSharing ? "Sharing…" : "Share Now"}
-        </button>
-        <button
-          type="button"
-          onClick={() => onSchedule(editedText)}
-          disabled={isEditing || !editedText.trim()}
-          className="inline-flex items-center justify-center gap-1.5 rounded-full border border-surface-border bg-surface px-4 py-2 font-display text-xs font-semibold text-ink transition-all duration-200 hover:border-primary-300 hover:bg-primary-50 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <CalendarClock size={14} />
-          Schedule
-        </button>
+        </div>
+        <div className="relative" ref={scheduleMenuRef}>
+          <button
+            type="button"
+            onClick={() => setScheduleMenuOpen((v) => !v)}
+            disabled={isEditing || !editedText.trim()}
+            className="inline-flex items-center justify-center gap-1.5 rounded-full border border-surface-border bg-surface px-4 py-2 font-display text-xs font-semibold text-ink transition-all duration-200 hover:border-primary-300 hover:bg-primary-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <CalendarClock size={14} />
+            Schedule
+            <ChevronDown size={12} />
+          </button>
+
+          {scheduleMenuOpen && (
+            <div className="absolute left-0 bottom-full z-10 mb-2 w-44 overflow-hidden rounded-xl border border-surface-border bg-white shadow-card-hover">
+              <p className="border-b border-surface-border px-3.5 py-2 text-[11px] font-semibold uppercase tracking-wide text-slate-light">
+                Schedule to
+              </p>
+              <button
+                type="button"
+                onClick={() => handleSchedule("account")}
+                className="flex w-full items-center gap-2 px-3.5 py-2.5 text-left text-xs font-medium text-ink transition-colors hover:bg-primary-50"
+              >
+                <User size={14} className="text-slate-light" />
+                Account
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSchedule("page")}
+                className="flex w-full items-center gap-2 px-3.5 py-2.5 text-left text-xs font-medium text-ink transition-colors hover:bg-primary-50"
+              >
+                <Building2 size={14} className="text-slate-light" />
+                Page
+              </button>
+            </div>
+          )}
+        </div>
 
         {shareStatus === "success" && (
           <span className="font-display text-xs font-semibold text-primary">
