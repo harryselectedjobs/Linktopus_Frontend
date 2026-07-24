@@ -6,6 +6,7 @@ import { useAuth } from "../context/AuthContext";
 import {
   generatePostVariations,
   publishPost,
+  publishPostToPage,
   schedulePost,
 } from "../services/sharePost";
 import ChatBubble from "../components/postAssistant/ChatBubble";
@@ -97,16 +98,25 @@ export default function PostAssistant() {
     }
   }
 
-  async function handleShare(text) {
+  async function handleShare(text, target = "post") {
     try {
-      await publishPost(text);
-      showToast("success", "Post shared to LinkedIn.");
+      if (target === "page") {
+        await publishPostToPage(text);
+      } else {
+        await publishPost(text);
+      }
+      showToast(
+        "success",
+        target === "page"
+          ? "Post shared to your LinkedIn Page."
+          : "Post shared to LinkedIn.",
+      );
     } catch (err) {
       showToast(
         "error",
         err.response?.data?.detail ||
           err.response?.data?.message ||
-          "Couldn't share this post."
+          "Couldn't share this post.",
       );
       throw err;
     }
@@ -114,10 +124,14 @@ export default function PostAssistant() {
 
   async function handleConfirmSchedule(dateStr) {
     try {
-      await schedulePost(scheduleTarget, dateStr);
+      await schedulePost(
+        scheduleTarget.text,
+        dateStr,
+        scheduleTarget.accountType,
+      );
       const formatted = new Date(`${dateStr}T00:00:00`).toLocaleDateString(
         undefined,
-        { month: "short", day: "numeric", year: "numeric" }
+        { month: "short", day: "numeric", year: "numeric" },
       );
       showToast("success", `Post scheduled for ${formatted}.`);
       setScheduleTarget(null);
@@ -126,7 +140,7 @@ export default function PostAssistant() {
         "error",
         err.response?.data?.detail ||
           err.response?.data?.message ||
-          "Couldn't schedule this post."
+          "Couldn't schedule this post.",
       );
       throw err;
     }
@@ -169,13 +183,17 @@ export default function PostAssistant() {
             />
           ))}
 
-          <AnimatePresence>{isGenerating && <TypingIndicator />}</AnimatePresence>
+          <AnimatePresence>
+            {isGenerating && <TypingIndicator />}
+          </AnimatePresence>
 
           {variations && (
             <PostVariations
               posts={variations}
               onShare={handleShare}
-              onSchedule={setScheduleTarget}
+              onSchedule={(text, accountType) =>
+                setScheduleTarget({ text, accountType })
+              }
             />
           )}
         </div>
