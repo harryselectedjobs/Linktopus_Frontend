@@ -64,8 +64,18 @@ export default function SearchParameterModal({
                 key={`${item.id}-${i}`}
                 type="button"
                 onClick={() => onSelect(item)}
-                className="block w-full rounded-xl px-3 py-2.5 text-left text-sm text-ink transition-colors hover:bg-primary-50"
+                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm text-ink transition-colors hover:bg-primary-50"
               >
+                {item.picture_url && (
+                  <img
+                    src={item.picture_url}
+                    alt=""
+                    className="h-8 w-8 shrink-0 rounded-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                    }}
+                  />
+                )}
                 {item.title}
               </button>
             ))}
