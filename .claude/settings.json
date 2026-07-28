@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx --yes -p playwright node \"C:\\\\Users\\\\SANDIP~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-sandiproy-Documents-Local-Office-Linktopus\\\\16726d0b-9694-4534-b83e-287755ac21ed\\\\scratchpad\\\\verify.js\")",
+      "Bash(node \"C:\\\\Users\\\\SANDIP~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-sandiproy-Documents-Local-Office-Linktopus\\\\16726d0b-9694-4534-b83e-287755ac21ed\\\\scratchpad\\\\verify.js\")",
+      "Bash(node \"C:\\\\Users\\\\SANDIP~1\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\c--Users-sandiproy-Documents-Local-Office-Linktopus\\\\16726d0b-9694-4534-b83e-287755ac21ed\\\\scratchpad\\\\verify-dashboard.js\")",
+      "PowerShell(Get-NetTCPConnection -LocalPort 5183 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue }; \"done\")"
+    ]
+  }
+}

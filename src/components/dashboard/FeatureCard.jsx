@@ -7,10 +7,19 @@ import {
   Users,
   Bell,
   Briefcase,
+  Rocket,
   ArrowRight,
 } from "lucide-react";
 
-const ICONS = { Sparkles, BarChart3, CalendarDays, Users, Bell, Briefcase };
+const ICONS = {
+  Sparkles,
+  BarChart3,
+  CalendarDays,
+  Users,
+  Bell,
+  Briefcase,
+  Rocket,
+};
 
 const cardVariants = {
   hidden: { opacity: 0, y: 16 },
@@ -44,17 +53,24 @@ export default function FeatureCard({ feature, index }) {
         )}
       </div>
 
-      <h3 className={`font-display text-base font-semibold ${isActive ? "text-ink" : "text-slate-light"}`}>
+      <h3
+        className={`font-display text-base font-semibold ${isActive ? "text-ink" : "text-slate-light"}`}
+      >
         {feature.title}
       </h3>
-      <p className={`mt-1.5 text-sm leading-relaxed ${isActive ? "text-slate" : "text-slate-light"}`}>
+      <p
+        className={`mt-1.5 text-sm leading-relaxed ${isActive ? "text-slate" : "text-slate-light"}`}
+      >
         {feature.description}
       </p>
 
       {isActive && (
         <span className="mt-4 inline-flex items-center gap-1.5 font-display text-sm font-semibold text-primary">
           {feature.cta}
-          <ArrowRight size={15} className="transition-transform duration-200 group-hover:translate-x-0.5" />
+          <ArrowRight
+            size={15}
+            className="transition-transform duration-200 group-hover:translate-x-0.5"
+          />
         </span>
       )}
     </>
@@ -75,7 +91,9 @@ export default function FeatureCard({ feature, index }) {
           {content}
         </Link>
       ) : (
-        <div className={`${baseClasses} cursor-not-allowed select-none`}>{content}</div>
+        <div className={`${baseClasses} cursor-not-allowed select-none`}>
+          {content}
+        </div>
       )}
     </motion.div>
   );

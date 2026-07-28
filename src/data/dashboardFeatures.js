@@ -20,6 +20,16 @@ export const dashboardFeatures = [
     to: "/project-automation",
   },
   {
+    key: "project-automation-v2",
+    title: "Project Automation v2",
+    description:
+      "Run a keyword-driven outreach pipeline with InMail and connection messaging in one step.",
+    icon: "Rocket",
+    status: "active",
+    cta: "Get started",
+    to: "/project-automation-v2",
+  },
+  {
     key: "content-calendar",
     title: "Content Calendar",
     description: "Visual scheduling grid for your upcoming posts",

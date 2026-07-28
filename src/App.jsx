@@ -8,6 +8,7 @@ import CalendarBooking from "./pages/CalendarBooking";
 import Dashboard from "./pages/Dashboard";
 import PostAssistant from "./pages/PostAssistant";
 import ProjectAutomation from "./pages/ProjectAutomation";
+import ProjectAutomationV2 from "./pages/ProjectAutomationV2";
 import ComingSoon from "./pages/ComingSoon";
 import NotFound from "./pages/NotFound";
 
@@ -64,6 +65,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <ProjectAutomation />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/project-automation-v2"
+          element={
+            <ProtectedRoute>
+              <ProjectAutomationV2 />
             </ProtectedRoute>
           }
         />
