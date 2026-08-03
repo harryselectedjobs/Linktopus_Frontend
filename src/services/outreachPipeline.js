@@ -9,6 +9,9 @@ export async function runOutreachPipeline({
   inmailMessage,
   connectionMessage,
   limit = 100,
+  locationId,
+  seniorityInclude = [],
+  seniorityExclude = [],
 }) {
   const { data } = await api.post(OUTREACH_PIPELINE_URL, {
     project_name: projectName,
@@ -16,6 +19,11 @@ export async function runOutreachPipeline({
     inmail_message: inmailMessage,
     connection_message: connectionMessage,
     limit,
+    location: locationId ? [{ id: locationId }] : [],
+    seniority: {
+      include: seniorityInclude,
+      exclude: seniorityExclude,
+    },
   });
   return data;
 }

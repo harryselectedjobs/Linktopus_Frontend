@@ -11,6 +11,25 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { runOutreachPipeline } from "../services/outreachPipeline";
 import Toast from "../components/postAssistant/Toast";
+import SearchField from "../components/projectAutomation/SearchField";
+import SeniorityBucketBox from "../components/projectAutomation/SeniorityBucketBox";
+
+const EMPTY_PARAM = { id: "", title: "" };
+
+function ReadOnlyField({ label, value }) {
+  return (
+    <div>
+      <label className="field-label">{label}</label>
+      <input
+        type="text"
+        value={value}
+        readOnly
+        disabled
+        className="input-field cursor-not-allowed bg-surface text-slate-light"
+      />
+    </div>
+  );
+}
 
 export default function ProjectAutomationV2() {
   const { email } = useAuth();
@@ -20,9 +39,33 @@ export default function ProjectAutomationV2() {
   const [inmailMessage, setInmailMessage] = useState("");
   const [connectionMessage, setConnectionMessage] = useState("");
 
+  const [company, setCompany] = useState(EMPTY_PARAM);
+  const [location, setLocation] = useState(EMPTY_PARAM);
+  const [seniorityInclude, setSeniorityInclude] = useState([]);
+  const [seniorityExclude, setSeniorityExclude] = useState([]);
+
   const [isRunning, setIsRunning] = useState(false);
   const [toast, setToast] = useState(null);
   const [result, setResult] = useState(null);
+
+  function toggleInclude(bucket) {
+    setSeniorityInclude((prev) => {
+      const isAdding = !prev.includes(bucket);
+      if (isAdding) {
+        setSeniorityExclude((exclude) => exclude.filter((b) => b !== bucket));
+        return [...prev, bucket];
+      }
+      return prev.filter((b) => b !== bucket);
+    });
+  }
+
+  function toggleExclude(bucket) {
+    setSeniorityExclude((prev) =>
+      prev.includes(bucket)
+        ? prev.filter((b) => b !== bucket)
+        : [...prev, bucket],
+    );
+  }
 
   function updateKeyword(index, value) {
     setKeywords((prev) => prev.map((k, i) => (i === index ? value : k)));
@@ -46,6 +89,9 @@ export default function ProjectAutomationV2() {
         keywords,
         inmailMessage,
         connectionMessage,
+        locationId: location.id,
+        seniorityInclude,
+        seniorityExclude,
       });
       setResult(data);
       setToast({
@@ -151,6 +197,48 @@ export default function ProjectAutomationV2() {
               <p className="mt-2 text-xs text-slate-light">
                 Add multiple keywords. They will be combined using AND.
               </p>
+            </div>
+
+            <SearchField
+              label="Search Company"
+              type="COMPANY"
+              placeholder="e.g. Microsoft"
+              modalTitle="Select a company"
+              onSelect={(item) =>
+                setCompany({ id: item.id, title: item.title })
+              }
+            />
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <ReadOnlyField label="Company ID" value={company.id} />
+              <ReadOnlyField label="Company" value={company.title} />
+            </div>
+
+            <SearchField
+              label="Search Location"
+              type="LOCATION"
+              placeholder="e.g. London"
+              modalTitle="Select a location"
+              onSelect={(item) =>
+                setLocation({ id: item.id, title: item.title })
+              }
+            />
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <ReadOnlyField label="Location ID" value={location.id} />
+              <ReadOnlyField label="Location" value={location.title} />
+            </div>
+
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <SeniorityBucketBox
+                label="Seniority Include"
+                selected={seniorityInclude}
+                onToggle={toggleInclude}
+              />
+              <SeniorityBucketBox
+                label="Seniority Exclude"
+                selected={seniorityExclude}
+                onToggle={toggleExclude}
+                disabledOptions={seniorityInclude}
+              />
             </div>
 
             <div>
