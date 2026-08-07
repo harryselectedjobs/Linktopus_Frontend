@@ -9,7 +9,7 @@ export async function runOutreachPipeline({
   inmailMessage,
   connectionMessage,
   limit = 100,
-  locationId,
+  locations = [],
   seniorityInclude = [],
   seniorityExclude = [],
 }) {
@@ -19,11 +19,22 @@ export async function runOutreachPipeline({
     inmail_message: inmailMessage,
     connection_message: connectionMessage,
     limit,
-    location: locationId ? [{ id: locationId }] : [],
+    location: locations
+      .filter((loc) => loc.id)
+      .map((loc) => ({ id: loc.id })),
     seniority: {
       include: seniorityInclude,
       exclude: seniorityExclude,
     },
   });
+  return data;
+}
+
+
+export async function extractJobTitleAndSkills(jobDescription) {
+  const { data } = await api.post(
+    "https://linktopus-api.selected.jobs/webhook/extract-job-title-and-skills",
+    { job_description: jobDescription },
+  );
   return data;
 }

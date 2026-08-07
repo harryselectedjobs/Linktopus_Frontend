@@ -5,11 +5,15 @@ import {
   Loader2,
   Plus,
   Rocket,
+  Sparkles,
   UserCircle2,
   X,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { runOutreachPipeline } from "../services/outreachPipeline";
+import {
+  runOutreachPipeline,
+  extractJobTitleAndSkills,
+} from "../services/outreachPipeline";
 import Toast from "../components/postAssistant/Toast";
 import SearchField from "../components/projectAutomation/SearchField";
 import SeniorityBucketBox from "../components/projectAutomation/SeniorityBucketBox";
@@ -35,12 +39,14 @@ export default function ProjectAutomationV2() {
   const { email } = useAuth();
 
   const [projectName, setProjectName] = useState("");
+  const [jobDescription, setJobDescription] = useState("");
+  const [isFetchingDetails, setIsFetchingDetails] = useState(false);
   const [keywords, setKeywords] = useState([""]);
   const [inmailMessage, setInmailMessage] = useState("");
   const [connectionMessage, setConnectionMessage] = useState("");
 
   const [company, setCompany] = useState(EMPTY_PARAM);
-  const [location, setLocation] = useState(EMPTY_PARAM);
+  const [locations, setLocations] = useState([EMPTY_PARAM]);
   const [seniorityInclude, setSeniorityInclude] = useState([]);
   const [seniorityExclude, setSeniorityExclude] = useState([]);
 
@@ -79,6 +85,59 @@ export default function ProjectAutomationV2() {
     setKeywords((prev) => prev.filter((_, i) => i !== index));
   }
 
+  function updateLocation(index, item) {
+    setLocations((prev) =>
+      prev.map((loc, i) =>
+        i === index ? { id: item.id, title: item.title } : loc,
+      ),
+    );
+  }
+
+  function addLocation() {
+    setLocations((prev) => [...prev, EMPTY_PARAM]);
+  }
+
+  function removeLocation(index) {
+    setLocations((prev) => prev.filter((_, i) => i !== index));
+  }
+
+
+  async function handleFetchDetails() {
+  const trimmed = jobDescription.trim();
+  if (!trimmed || isFetchingDetails) return;
+  setIsFetchingDetails(true);
+  try {
+    const res = await extractJobTitleAndSkills(trimmed);
+    if (res.success && res.data) {
+      const { job_title, skills, inMailMessage, connectionNote } = res.data;
+      const newKeywords = [job_title, ...(skills || [])].filter(Boolean);
+      setKeywords(newKeywords.length ? newKeywords : [""]);
+      if (inMailMessage) setInmailMessage(inMailMessage);
+      if (connectionNote) setConnectionMessage(connectionNote);
+      setToast({
+        type: "success",
+        message: "Details filled from job description.",
+      });
+    } else {
+      setToast({
+        type: "error",
+        message: "Couldn't extract details from that description.",
+      });
+    }
+  } catch (err) {
+    setToast({
+      type: "error",
+      message:
+        err.response?.data?.detail ||
+        err.response?.data?.message ||
+        "Couldn't fetch job details.",
+    });
+  } finally {
+    setIsFetchingDetails(false);
+    setTimeout(() => setToast(null), 3200);
+  }
+}
+
   async function handleRunPipeline() {
     if (isRunning) return;
     setIsRunning(true);
@@ -89,7 +148,7 @@ export default function ProjectAutomationV2() {
         keywords,
         inmailMessage,
         connectionMessage,
-        locationId: location.id,
+        locations,
         seniorityInclude,
         seniorityExclude,
       });
@@ -157,6 +216,30 @@ export default function ProjectAutomationV2() {
             </div>
 
             <div>
+              <label className="field-label">Job Description</label>
+              <textarea
+                value={jobDescription}
+                onChange={(e) => setJobDescription(e.target.value)}
+                placeholder="Paste the job description here..."
+                rows={6}
+                className="input-field resize-none"
+              />
+              <button
+                type="button"
+                onClick={handleFetchDetails}
+                disabled={!jobDescription.trim() || isFetchingDetails}
+                className="btn-primary mt-3 inline-flex items-center gap-2 !px-5 !py-3 text-xs disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {isFetchingDetails ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : (
+                  <Sparkles size={14} />
+                )}
+                {isFetchingDetails ? "Fetching..." : "Fetch Details"}
+              </button>
+            </div>
+
+            <div>
               <label className="field-label">Keywords</label>
               <div className="flex flex-col gap-3">
                 {keywords.map((keyword, index) => (
@@ -213,18 +296,52 @@ export default function ProjectAutomationV2() {
               <ReadOnlyField label="Company" value={company.title} />
             </div>
 
-            <SearchField
-              label="Search Location"
-              type="LOCATION"
-              placeholder="e.g. London"
-              modalTitle="Select a location"
-              onSelect={(item) =>
-                setLocation({ id: item.id, title: item.title })
-              }
-            />
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-              <ReadOnlyField label="Location ID" value={location.id} />
-              <ReadOnlyField label="Location" value={location.title} />
+            <div>
+              <label className="field-label">Locations</label>
+              <div className="flex flex-col gap-4">
+                {locations.map((loc, index) => (
+                  <div key={index} className="flex flex-col gap-3">
+                    <div className="flex items-end gap-2">
+                      <div className="flex-1">
+                        <SearchField
+                          label={
+                            index === 0
+                              ? "Search Location"
+                              : `Search Location ${index + 1}`
+                          }
+                          type="LOCATION"
+                          placeholder="e.g. London"
+                          modalTitle="Select a location"
+                          onSelect={(item) => updateLocation(index, item)}
+                        />
+                      </div>
+                      {index === 0 ? (
+                        <button
+                          type="button"
+                          onClick={addLocation}
+                          aria-label="Add location"
+                          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-white transition-colors hover:bg-primary-600"
+                        >
+                          <Plus size={18} />
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => removeLocation(index)}
+                          aria-label="Remove location"
+                          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-spark text-white transition-colors hover:bg-[#E5573D]"
+                        >
+                          <X size={18} />
+                        </button>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                      <ReadOnlyField label="Location ID" value={loc.id} />
+                      <ReadOnlyField label="Location" value={loc.title} />
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
