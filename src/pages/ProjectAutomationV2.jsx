@@ -1,4 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
 import { Link } from "react-router-dom";
 
 import {
@@ -25,12 +30,16 @@ import {
 import { useAuth } from "../context/AuthContext";
 
 import {
-  runOutreachPipeline,
   extractJobTitleAndSkills,
+  resolveLinkedInCompany,
+  runOutreachPipeline,
+  normalizeSeniority,
 } from "../services/outreachPipeline";
 
 import Toast from "../components/postAssistant/Toast";
+
 import SearchField from "../components/projectAutomation/SearchField";
+
 import SeniorityBucketBox from "../components/projectAutomation/SeniorityBucketBox";
 
 
@@ -56,20 +65,26 @@ const EMPTY_PARAM = {
    Read Only Field
 ========================================================= */
 
-function ReadOnlyField({ label, value }) {
+function ReadOnlyField({
+  label,
+  value,
+}) {
+
   return (
     <div>
+
       <label className="field-label">
         {label}
       </label>
 
       <input
         type="text"
-        value={value}
+        value={value || ""}
         readOnly
         disabled
         className="input-field cursor-not-allowed bg-surface text-slate-light"
       />
+
     </div>
   );
 }
@@ -79,33 +94,36 @@ function ReadOnlyField({ label, value }) {
    Candidate Card
 ========================================================= */
 
-function CandidateCard({ candidate }) {
+function CandidateCard({
+  candidate,
+}) {
+
   const inmailSent =
     candidate.inmail_sent === true;
 
   const connectionSent =
     candidate.connection_sent === true;
 
-  return (
-    <div className="group rounded-2xl border border-slate-200 bg-white p-5 transition-all duration-200 hover:border-primary/30 hover:shadow-lg">
 
-      {/* Header */}
+  return (
+    <div className="group rounded-2xl border border-slate-200 bg-white p-5 transition-all hover:border-primary/30 hover:shadow-lg">
 
       <div className="flex items-start gap-3">
 
-        {/* Avatar */}
-
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 font-display text-sm font-bold text-primary">
+
           {candidate.full_name
             ?.split(" ")
-            .map((name) => name[0])
+            .map(
+              (name) =>
+                name[0]
+            )
             .slice(0, 2)
             .join("")
             .toUpperCase() || "?"}
+
         </div>
 
-
-        {/* Name */}
 
         <div className="min-w-0 flex-1">
 
@@ -115,91 +133,125 @@ function CandidateCard({ candidate }) {
           </h4>
 
           {candidate.public_identifier && (
+
             <p className="mt-0.5 truncate text-xs text-slate-light">
               @{candidate.public_identifier}
             </p>
+
           )}
 
         </div>
 
 
-        {/* Network */}
-
         {candidate.network_distance && (
+
           <span className="shrink-0 rounded-full bg-surface px-2.5 py-1 text-[10px] font-semibold text-slate-light">
+
             {candidate.network_distance.replace(
               "_",
               " "
             )}
+
           </span>
+
         )}
 
       </div>
 
 
-      {/* Headline */}
-
       {candidate.headline && (
+
         <p className="mt-4 line-clamp-3 text-sm leading-5 text-slate">
           {candidate.headline}
         </p>
+
       )}
 
-
-      {/* Location */}
 
       {candidate.location && (
+
         <div className="mt-3 flex items-center gap-1.5 text-xs text-slate-light">
+
           <span>📍</span>
-          <span>{candidate.location}</span>
+
+          <span>
+            {candidate.location}
+          </span>
+
         </div>
+
       )}
 
-
-      {/* Outreach Status */}
 
       <div className="mt-4 flex flex-wrap gap-2">
 
         {inmailSent ? (
+
           <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1.5 text-[10px] font-semibold text-blue-700">
+
             <Send size={11} />
+
             InMail Sent
+
           </span>
+
         ) : (
+
           <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-50 px-3 py-1.5 text-[10px] font-semibold text-slate-500">
+
             <Send size={11} />
+
             InMail Not Sent
+
           </span>
+
         )}
 
 
         {connectionSent ? (
+
           <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 px-3 py-1.5 text-[10px] font-semibold text-indigo-700">
+
             <UserPlus size={11} />
+
             Connection Sent
+
           </span>
+
         ) : (
+
           <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-50 px-3 py-1.5 text-[10px] font-semibold text-slate-500">
+
             <UserPlus size={11} />
+
             Connection Not Sent
+
           </span>
+
         )}
 
       </div>
 
 
-      {/* LinkedIn */}
-
       {candidate.public_profile_url && (
+
         <a
-          href={candidate.public_profile_url}
+          href={
+            candidate.public_profile_url
+          }
           target="_blank"
           rel="noopener noreferrer"
           className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-ink transition-all hover:border-primary hover:bg-primary hover:text-white"
         >
+
           View LinkedIn Profile
-          <ExternalLink size={14} />
+
+          <ExternalLink
+            size={14}
+          />
+
         </a>
+
       )}
 
     </div>
@@ -208,7 +260,7 @@ function CandidateCard({ candidate }) {
 
 
 /* =========================================================
-   Project Details Modal
+   Project Modal
 ========================================================= */
 
 function ProjectDetailsModal({
@@ -217,6 +269,7 @@ function ProjectDetailsModal({
   isLoading,
   onClose,
 }) {
+
   const [activeTab, setActiveTab] =
     useState("all");
 
@@ -228,22 +281,6 @@ function ProjectDetailsModal({
 
   const [showFilter, setShowFilter] =
     useState(false);
-
-
-  /* =======================================================
-     Candidate Groups
-  ======================================================= */
-
-  const notSentCandidates =
-    useMemo(
-      () =>
-        candidates.filter(
-          (candidate) =>
-            candidate.inmail_sent === false &&
-            candidate.connection_sent === false
-        ),
-      [candidates]
-    );
 
 
   const sentCandidates =
@@ -258,18 +295,30 @@ function ProjectDetailsModal({
     );
 
 
-  /* =======================================================
-     Tab Filtering
-  ======================================================= */
+  const notSentCandidates =
+    useMemo(
+      () =>
+        candidates.filter(
+          (candidate) =>
+            candidate.inmail_sent === false &&
+            candidate.connection_sent === false
+        ),
+      [candidates]
+    );
+
 
   const tabCandidates =
     useMemo(() => {
 
-      if (activeTab === "sent") {
+      if (
+        activeTab === "sent"
+      ) {
         return sentCandidates;
       }
 
-      if (activeTab === "notSent") {
+      if (
+        activeTab === "notSent"
+      ) {
         return notSentCandidates;
       }
 
@@ -283,74 +332,96 @@ function ProjectDetailsModal({
     ]);
 
 
-  /* =======================================================
-     Status + Search Filtering
-  ======================================================= */
-
   const filteredCandidates =
     useMemo(() => {
 
-      let data = [...tabCandidates];
+      let data =
+        [...tabCandidates];
 
 
-      /* Status */
+      if (
+        statusFilter ===
+        "inmailSent"
+      ) {
 
-      if (statusFilter === "inmailSent") {
-        data = data.filter(
-          (candidate) =>
-            candidate.inmail_sent === true
-        );
-      }
+        data =
+          data.filter(
+            (candidate) =>
+              candidate.inmail_sent === true
+          );
 
-      if (statusFilter === "connectionSent") {
-        data = data.filter(
-          (candidate) =>
-            candidate.connection_sent === true
-        );
-      }
-
-      if (statusFilter === "inmailNotSent") {
-        data = data.filter(
-          (candidate) =>
-            candidate.inmail_sent === false
-        );
-      }
-
-      if (statusFilter === "connectionNotSent") {
-        data = data.filter(
-          (candidate) =>
-            candidate.connection_sent === false
-        );
       }
 
 
-      /* Search */
+      if (
+        statusFilter ===
+        "connectionSent"
+      ) {
+
+        data =
+          data.filter(
+            (candidate) =>
+              candidate.connection_sent === true
+          );
+
+      }
+
+
+      if (
+        statusFilter ===
+        "inmailNotSent"
+      ) {
+
+        data =
+          data.filter(
+            (candidate) =>
+              candidate.inmail_sent === false
+          );
+
+      }
+
+
+      if (
+        statusFilter ===
+        "connectionNotSent"
+      ) {
+
+        data =
+          data.filter(
+            (candidate) =>
+              candidate.connection_sent === false
+          );
+
+      }
+
 
       const search =
         searchTerm
           .trim()
           .toLowerCase();
 
+
       if (search) {
 
-        data = data.filter(
-          (candidate) => {
+        data =
+          data.filter(
+            (candidate) => {
 
-            const searchableText = [
-              candidate.full_name,
-              candidate.headline,
-              candidate.location,
-              candidate.public_identifier,
-            ]
-              .filter(Boolean)
-              .join(" ")
-              .toLowerCase();
+              const text = [
+                candidate.full_name,
+                candidate.headline,
+                candidate.location,
+                candidate.public_identifier,
+              ]
+                .filter(Boolean)
+                .join(" ")
+                .toLowerCase();
 
-            return searchableText.includes(
-              search
-            );
-          }
-        );
+              return text.includes(
+                search
+              );
+            }
+          );
 
       }
 
@@ -364,36 +435,31 @@ function ProjectDetailsModal({
     ]);
 
 
-  /* =======================================================
-     Escape Key
-  ======================================================= */
-
   useEffect(() => {
 
-    function handleEscape(event) {
-      if (event.key === "Escape") {
+    function onKeyDown(event) {
+
+      if (
+        event.key === "Escape"
+      ) {
         onClose();
       }
+
     }
 
     document.addEventListener(
       "keydown",
-      handleEscape
+      onKeyDown
     );
 
-    return () => {
+    return () =>
       document.removeEventListener(
         "keydown",
-        handleEscape
+        onKeyDown
       );
-    };
 
   }, [onClose]);
 
-
-  /* =======================================================
-     Modal
-  ======================================================= */
 
   return (
     <div
@@ -413,9 +479,7 @@ function ProjectDetailsModal({
       <div className="flex max-h-[92vh] w-full max-w-7xl flex-col overflow-hidden rounded-3xl bg-surface shadow-2xl">
 
 
-        {/* =================================================
-            Header
-        ================================================= */}
+        {/* HEADER */}
 
         <div className="shrink-0 border-b border-slate-200 bg-white px-6 py-5">
 
@@ -424,31 +488,51 @@ function ProjectDetailsModal({
             <div className="flex min-w-0 items-start gap-4">
 
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                <FolderOpen size={22} />
+
+                <FolderOpen
+                  size={22}
+                />
+
               </div>
+
 
               <div className="min-w-0">
 
                 <h2 className="truncate font-display text-xl font-bold text-ink">
+
                   {project?.project_name ||
                     "Project"}
+
                 </h2>
+
 
                 <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-slate-light">
 
                   <span className="inline-flex items-center gap-1.5">
+
                     <Users size={13} />
-                    {candidates.length} candidates
+
+                    {candidates.length}
+                    {" "}
+                    candidates
+
                   </span>
 
+
                   {project?.first_created_at && (
+
                     <span className="inline-flex items-center gap-1.5">
-                      <CalendarDays size={13} />
+
+                      <CalendarDays
+                        size={13}
+                      />
 
                       {new Date(
                         project.first_created_at
                       ).toLocaleDateString()}
+
                     </span>
+
                   )}
 
                 </div>
@@ -461,20 +545,18 @@ function ProjectDetailsModal({
             <button
               type="button"
               onClick={onClose}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-light transition-colors hover:bg-surface hover:text-ink"
-              aria-label="Close project"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-light hover:bg-surface hover:text-ink"
             >
+
               <X size={20} />
+
             </button>
 
           </div>
 
 
-          {/* =================================================
-              Stats
-          ================================================= */}
-
           {!isLoading && (
+
             <div className="mt-5 grid grid-cols-3 gap-3">
 
               <div className="rounded-xl bg-surface px-4 py-3">
@@ -516,119 +598,95 @@ function ProjectDetailsModal({
               </div>
 
             </div>
+
           )}
 
         </div>
 
 
-        {/* =================================================
-            Tabs
-        ================================================= */}
+        {/* TABS */}
 
         {!isLoading && (
+
           <div className="shrink-0 border-b border-slate-200 bg-white px-6">
 
             <div className="flex gap-6">
 
-              {/* All */}
+              {[
+                [
+                  "all",
+                  "All",
+                  candidates.length,
+                ],
+                [
+                  "notSent",
+                  "Not Sent",
+                  notSentCandidates.length,
+                ],
+                [
+                  "sent",
+                  "Sent",
+                  sentCandidates.length,
+                ],
+              ].map(
+                ([
+                  value,
+                  label,
+                  count,
+                ]) => (
 
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab("all");
-                  setStatusFilter("all");
-                }}
-                className={`relative py-4 text-xs font-semibold ${
-                  activeTab === "all"
-                    ? "text-primary"
-                    : "text-slate-light hover:text-ink"
-                }`}
-              >
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => {
+                      setActiveTab(
+                        value
+                      );
 
-                All
+                      setStatusFilter(
+                        "all"
+                      );
+                    }}
+                    className={`relative py-4 text-xs font-semibold ${
+                      activeTab === value
+                        ? "text-primary"
+                        : "text-slate-light hover:text-ink"
+                    }`}
+                  >
 
-                <span className="ml-2 rounded-full bg-surface px-2 py-0.5 text-[10px]">
-                  {candidates.length}
-                </span>
+                    {label}
 
-                {activeTab === "all" && (
-                  <span className="absolute inset-x-0 bottom-0 h-0.5 bg-primary" />
-                )}
-
-              </button>
-
-
-              {/* Not Sent */}
-
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab("notSent");
-                  setStatusFilter("all");
-                }}
-                className={`relative py-4 text-xs font-semibold ${
-                  activeTab === "notSent"
-                    ? "text-green-700"
-                    : "text-slate-light hover:text-ink"
-                }`}
-              >
-
-                Not Sent
-
-                <span className="ml-2 rounded-full bg-green-50 px-2 py-0.5 text-[10px] text-green-700">
-                  {notSentCandidates.length}
-                </span>
-
-                {activeTab === "notSent" && (
-                  <span className="absolute inset-x-0 bottom-0 h-0.5 bg-green-600" />
-                )}
-
-              </button>
+                    <span className="ml-2 rounded-full bg-surface px-2 py-0.5 text-[10px]">
+                      {count}
+                    </span>
 
 
-              {/* Sent */}
+                    {activeTab ===
+                      value && (
 
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab("sent");
-                  setStatusFilter("all");
-                }}
-                className={`relative py-4 text-xs font-semibold ${
-                  activeTab === "sent"
-                    ? "text-blue-700"
-                    : "text-slate-light hover:text-ink"
-                }`}
-              >
+                      <span className="absolute inset-x-0 bottom-0 h-0.5 bg-primary" />
 
-                Sent
+                    )}
 
-                <span className="ml-2 rounded-full bg-blue-50 px-2 py-0.5 text-[10px] text-blue-700">
-                  {sentCandidates.length}
-                </span>
+                  </button>
 
-                {activeTab === "sent" && (
-                  <span className="absolute inset-x-0 bottom-0 h-0.5 bg-blue-600" />
-                )}
-
-              </button>
+                )
+              )}
 
             </div>
 
           </div>
+
         )}
 
 
-        {/* =================================================
-            Search + Filter
-        ================================================= */}
+        {/* SEARCH */}
 
         {!isLoading && (
+
           <div className="shrink-0 border-b border-slate-200 bg-white px-6 py-4">
 
             <div className="flex flex-col gap-3 sm:flex-row">
-
-              {/* Search */}
 
               <div className="relative flex-1">
 
@@ -640,9 +698,9 @@ function ProjectDetailsModal({
                 <input
                   type="text"
                   value={searchTerm}
-                  onChange={(event) =>
+                  onChange={(e) =>
                     setSearchTerm(
-                      event.target.value
+                      e.target.value
                     )
                   }
                   placeholder="Search candidate, headline, location..."
@@ -651,8 +709,6 @@ function ProjectDetailsModal({
 
               </div>
 
-
-              {/* Filter */}
 
               <div className="relative">
 
@@ -663,37 +719,27 @@ function ProjectDetailsModal({
                       (prev) => !prev
                     )
                   }
-                  className="flex h-11 min-w-[190px] items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 text-xs font-semibold text-ink hover:border-primary/40"
+                  className="flex h-11 min-w-[190px] items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 text-xs font-semibold text-ink"
                 >
 
                   <span className="flex items-center gap-2">
+
                     <Filter size={14} />
+
                     Filter
-                  </span>
-
-                  <span className="flex items-center gap-1 text-slate-light">
-
-                    {statusFilter === "all"
-                      ? "All"
-                      : statusFilter ===
-                        "inmailSent"
-                        ? "InMail Sent"
-                        : statusFilter ===
-                          "connectionSent"
-                          ? "Connection Sent"
-                          : statusFilter ===
-                            "inmailNotSent"
-                            ? "InMail Not Sent"
-                            : "Connection Not Sent"}
-
-                    <ChevronDown size={14} />
 
                   </span>
+
+
+                  <ChevronDown
+                    size={14}
+                  />
 
                 </button>
 
 
                 {showFilter && (
+
                   <div className="absolute right-0 top-12 z-30 w-60 overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
 
                     {[
@@ -718,12 +764,16 @@ function ProjectDetailsModal({
                         "Connection Not Sent",
                       ],
                     ].map(
-                      ([value, label]) => (
+                      ([
+                        value,
+                        label,
+                      ]) => (
 
                         <button
                           key={value}
                           type="button"
                           onClick={() => {
+
                             setStatusFilter(
                               value
                             );
@@ -731,21 +781,20 @@ function ProjectDetailsModal({
                             setShowFilter(
                               false
                             );
+
                           }}
-                          className={`w-full rounded-lg px-3 py-2.5 text-left text-xs font-medium transition-colors ${
-                            statusFilter ===
-                            value
-                              ? "bg-primary/10 text-primary"
-                              : "text-slate hover:bg-surface"
-                          }`}
+                          className="w-full rounded-lg px-3 py-2.5 text-left text-xs font-medium hover:bg-surface"
                         >
+
                           {label}
+
                         </button>
 
                       )
                     )}
 
                   </div>
+
                 )}
 
               </div>
@@ -753,23 +802,17 @@ function ProjectDetailsModal({
             </div>
 
 
-            {/* Filter summary */}
-
-            <div className="mt-3 flex items-center justify-between">
+            <div className="mt-3 flex justify-between">
 
               <p className="text-xs text-slate-light">
 
                 Showing{" "}
 
-                <span className="font-semibold text-ink">
-                  {filteredCandidates.length}
-                </span>
-
-                {" "}of{" "}
-
-                <span className="font-semibold text-ink">
-                  {tabCandidates.length}
-                </span>
+                <b className="text-ink">
+                  {
+                    filteredCandidates.length
+                  }
+                </b>
 
                 {" "}candidates
 
@@ -777,15 +820,23 @@ function ProjectDetailsModal({
 
 
               {(searchTerm ||
-                statusFilter !== "all") && (
+                statusFilter !==
+                  "all") && (
 
                 <button
                   type="button"
                   onClick={() => {
-                    setSearchTerm("");
-                    setStatusFilter("all");
+
+                    setSearchTerm(
+                      ""
+                    );
+
+                    setStatusFilter(
+                      "all"
+                    );
+
                   }}
-                  className="text-xs font-semibold text-primary hover:underline"
+                  className="text-xs font-semibold text-primary"
                 >
                   Clear filters
                 </button>
@@ -795,12 +846,11 @@ function ProjectDetailsModal({
             </div>
 
           </div>
+
         )}
 
 
-        {/* =================================================
-            Candidates
-        ================================================= */}
+        {/* CANDIDATES */}
 
         <div className="min-h-0 flex-1 overflow-y-auto p-6">
 
@@ -808,42 +858,30 @@ function ProjectDetailsModal({
 
             <div className="flex min-h-[300px] items-center justify-center">
 
-              <div className="flex flex-col items-center gap-3">
-
-                <Loader2
-                  size={30}
-                  className="animate-spin text-primary"
-                />
-
-                <p className="text-sm text-slate-light">
-                  Loading candidates...
-                </p>
-
-              </div>
+              <Loader2
+                size={30}
+                className="animate-spin text-primary"
+              />
 
             </div>
 
           ) : filteredCandidates.length === 0 ? (
 
-            <div className="flex min-h-[300px] items-center justify-center">
+            <div className="flex min-h-[300px] items-center justify-center text-center">
 
-              <div className="text-center">
+              <div>
 
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-surface">
+                <Users
+                  size={35}
+                  className="mx-auto text-slate-light"
+                />
 
-                  <Users
-                    size={24}
-                    className="text-slate-light"
-                  />
-
-                </div>
-
-                <h3 className="mt-4 font-display text-sm font-bold text-ink">
+                <h3 className="mt-3 font-display text-sm font-bold text-ink">
                   No candidates found
                 </h3>
 
                 <p className="mt-1 text-xs text-slate-light">
-                  Try changing your search or filter.
+                  Try changing the filters.
                 </p>
 
               </div>
@@ -861,7 +899,9 @@ function ProjectDetailsModal({
                     key={
                       candidate.candidate_id
                     }
-                    candidate={candidate}
+                    candidate={
+                      candidate
+                    }
                   />
 
                 )
@@ -886,11 +926,12 @@ function ProjectDetailsModal({
 
 export default function ProjectAutomationV2() {
 
-  const { email } = useAuth();
+  const { email } =
+    useAuth();
 
 
   /* =======================================================
-     Form State
+     Form
   ======================================================= */
 
   const [projectName, setProjectName] =
@@ -912,11 +953,20 @@ export default function ProjectAutomationV2() {
     useState("");
 
 
+  /* =======================================================
+     Company
+  ======================================================= */
+
   const [company, setCompany] =
     useState(EMPTY_PARAM);
 
   const [locations, setLocations] =
     useState([EMPTY_PARAM]);
+
+
+  /* =======================================================
+     Seniority
+  ======================================================= */
 
   const [seniorityInclude, setSeniorityInclude] =
     useState([]);
@@ -926,11 +976,22 @@ export default function ProjectAutomationV2() {
 
 
   /* =======================================================
-     Pipeline State
+     Target Companies
+  ======================================================= */
+
+  const [targetCompanies, setTargetCompanies] =
+    useState([]);
+
+
+  /* =======================================================
+     Pipeline
   ======================================================= */
 
   const [isRunning, setIsRunning] =
     useState(false);
+
+  const [runningCompanyIndex, setRunningCompanyIndex] =
+    useState(null);
 
   const [toast, setToast] =
     useState(null);
@@ -948,11 +1009,6 @@ export default function ProjectAutomationV2() {
 
   const [isLoadingProjects, setIsLoadingProjects] =
     useState(false);
-
-
-  /* =======================================================
-     Projects Panel
-  ======================================================= */
 
   const [projectsCollapsed, setProjectsCollapsed] =
     useState(false);
@@ -973,7 +1029,7 @@ export default function ProjectAutomationV2() {
 
 
   /* =======================================================
-     Load Projects
+     Load Existing Projects
   ======================================================= */
 
   async function loadProjects() {
@@ -988,9 +1044,11 @@ export default function ProjectAutomationV2() {
         );
 
       if (!response.ok) {
+
         throw new Error(
           "Failed to fetch projects"
         );
+
       }
 
       const data =
@@ -1004,20 +1062,13 @@ export default function ProjectAutomationV2() {
 
     } catch (error) {
 
-      console.error(
-        "Error loading projects:",
-        error
-      );
+      console.error(error);
 
       setToast({
         type: "error",
         message:
           "Couldn't load existing projects.",
       });
-
-      setTimeout(() => {
-        setToast(null);
-      }, 3200);
 
     } finally {
 
@@ -1026,10 +1077,6 @@ export default function ProjectAutomationV2() {
     }
   }
 
-
-  /* =======================================================
-     Load Projects On Mount
-  ======================================================= */
 
   useEffect(() => {
     loadProjects();
@@ -1044,11 +1091,15 @@ export default function ProjectAutomationV2() {
     project
   ) {
 
-    setSelectedProject(project);
+    setSelectedProject(
+      project
+    );
 
     setProjectCandidates([]);
 
-    setIsLoadingCandidates(true);
+    setIsLoadingCandidates(
+      true
+    );
 
     try {
 
@@ -1058,28 +1109,23 @@ export default function ProjectAutomationV2() {
         );
 
       if (!response.ok) {
+
         throw new Error(
-          "Failed to fetch project details"
+          "Failed to fetch project"
         );
+
       }
 
       const data =
         await response.json();
 
       setProjectCandidates(
-        Array.isArray(
-          data.candidates
-        )
-          ? data.candidates
-          : []
+        data?.candidates || []
       );
 
     } catch (error) {
 
-      console.error(
-        "Error loading project candidates:",
-        error
-      );
+      console.error(error);
 
       setToast({
         type: "error",
@@ -1087,27 +1133,25 @@ export default function ProjectAutomationV2() {
           "Couldn't load project candidates.",
       });
 
-      setTimeout(() => {
-        setToast(null);
-      }, 3200);
-
-      setSelectedProject(null);
+      setSelectedProject(
+        null
+      );
 
     } finally {
 
-      setIsLoadingCandidates(false);
+      setIsLoadingCandidates(
+        false
+      );
 
     }
   }
 
 
-  /* =======================================================
-     Close Project
-  ======================================================= */
-
   function closeProjectModal() {
 
-    setSelectedProject(null);
+    setSelectedProject(
+      null
+    );
 
     setProjectCandidates([]);
 
@@ -1118,49 +1162,64 @@ export default function ProjectAutomationV2() {
      Seniority
   ======================================================= */
 
-  function toggleInclude(bucket) {
+  function toggleInclude(
+    bucket
+  ) {
 
-    setSeniorityInclude((prev) => {
+    setSeniorityInclude(
+      (prev) => {
 
-      const isAdding =
-        !prev.includes(bucket);
+        const isAdding =
+          !prev.includes(
+            bucket
+          );
 
-      if (isAdding) {
 
-        setSeniorityExclude(
-          (exclude) =>
-            exclude.filter(
-              (b) => b !== bucket
-            )
+        if (isAdding) {
+
+          setSeniorityExclude(
+            (exclude) =>
+              exclude.filter(
+                (b) =>
+                  b !== bucket
+              )
+          );
+
+
+          return [
+            ...prev,
+            bucket,
+          ];
+
+        }
+
+
+        return prev.filter(
+          (b) =>
+            b !== bucket
         );
 
-        return [
-          ...prev,
-          bucket,
-        ];
-
       }
-
-      return prev.filter(
-        (b) => b !== bucket
-      );
-
-    });
+    );
 
   }
 
 
-  function toggleExclude(bucket) {
+  function toggleExclude(
+    bucket
+  ) {
 
-    setSeniorityExclude((prev) =>
-      prev.includes(bucket)
-        ? prev.filter(
-            (b) => b !== bucket
-          )
-        : [
-            ...prev,
-            bucket,
-          ]
+    setSeniorityExclude(
+      (prev) =>
+        prev.includes(bucket)
+          ? prev.filter(
+              (b) =>
+                b !== bucket
+            )
+          : [
+              ...prev,
+              bucket,
+            ]
     );
 
   }
@@ -1175,13 +1234,14 @@ export default function ProjectAutomationV2() {
     value
   ) {
 
-    setKeywords((prev) =>
-      prev.map(
-        (keyword, i) =>
-          i === index
-            ? value
-            : keyword
-      )
+    setKeywords(
+      (prev) =>
+        prev.map(
+          (keyword, i) =>
+            i === index
+              ? value
+              : keyword
+        )
     );
 
   }
@@ -1189,20 +1249,26 @@ export default function ProjectAutomationV2() {
 
   function addKeyword() {
 
-    setKeywords((prev) => [
-      ...prev,
-      "",
-    ]);
+    setKeywords(
+      (prev) => [
+        ...prev,
+        "",
+      ]
+    );
 
   }
 
 
-  function removeKeyword(index) {
+  function removeKeyword(
+    index
+  ) {
 
-    setKeywords((prev) =>
-      prev.filter(
-        (_, i) => i !== index
-      )
+    setKeywords(
+      (prev) =>
+        prev.filter(
+          (_, i) =>
+            i !== index
+        )
     );
 
   }
@@ -1217,16 +1283,19 @@ export default function ProjectAutomationV2() {
     item
   ) {
 
-    setLocations((prev) =>
-      prev.map(
-        (location, i) =>
-          i === index
-            ? {
-                id: item.id,
-                title: item.title,
-              }
-            : location
-      )
+    setLocations(
+      (prev) =>
+        prev.map(
+          (location, i) =>
+            i === index
+              ? {
+                  id:
+                    item.id,
+                  title:
+                    item.title,
+                }
+              : location
+        )
     );
 
   }
@@ -1234,33 +1303,112 @@ export default function ProjectAutomationV2() {
 
   function addLocation() {
 
-    setLocations((prev) => [
-      ...prev,
-      EMPTY_PARAM,
-    ]);
+    setLocations(
+      (prev) => [
+        ...prev,
+        EMPTY_PARAM,
+      ]
+    );
 
   }
 
 
-  function removeLocation(index) {
+  function removeLocation(
+    index
+  ) {
 
-    setLocations((prev) =>
-      prev.filter(
-        (_, i) => i !== index
-      )
+    setLocations(
+      (prev) =>
+        prev.filter(
+          (_, i) =>
+            i !== index
+        )
     );
 
   }
 
 
   /* =======================================================
-     Fetch Job Details
+     Target Companies
+  ======================================================= */
+
+  function addTargetCompany() {
+
+    setTargetCompanies(
+      (prev) => [
+        ...prev,
+        {
+          name: "",
+          id: "",
+          matchedTitle: "",
+          pictureUrl: "",
+        },
+      ]
+    );
+
+  }
+
+
+  function updateTargetCompany(
+    index,
+    value
+  ) {
+
+    setTargetCompanies(
+      (prev) =>
+        prev.map(
+          (company, i) =>
+            i === index
+              ? {
+                  ...company,
+
+                  /*
+                   * If user edits the company,
+                   * old LinkedIn ID is invalid.
+                   */
+
+                  name:
+                    value,
+
+                  id: "",
+
+                  matchedTitle:
+                    "",
+
+                  pictureUrl:
+                    "",
+                }
+              : company
+        )
+    );
+
+  }
+
+
+  function removeTargetCompany(
+    index
+  ) {
+
+    setTargetCompanies(
+      (prev) =>
+        prev.filter(
+          (_, i) =>
+            i !== index
+        )
+    );
+
+  }
+
+
+  /* =======================================================
+     Fetch Details
   ======================================================= */
 
   async function handleFetchDetails() {
 
     const trimmed =
       jobDescription.trim();
+
 
     if (
       !trimmed ||
@@ -1269,93 +1417,304 @@ export default function ProjectAutomationV2() {
       return;
     }
 
-    setIsFetchingDetails(true);
+
+    setIsFetchingDetails(
+      true
+    );
+
 
     try {
 
-      const res =
+      const response =
         await extractJobTitleAndSkills(
           trimmed
         );
 
+
       if (
-        res.success &&
-        res.data
+        !response?.success ||
+        !response?.data
       ) {
 
-        const {
-          job_title,
-          skills,
-          inMailMessage,
-          connectionNote,
-        } = res.data;
-
-
-        const newKeywords = [
-          job_title,
-          ...(skills || []),
-        ].filter(Boolean);
-
-
-        setKeywords(
-          newKeywords.length
-            ? newKeywords
-            : [""]
+        throw new Error(
+          "Invalid job details response."
         );
-
-
-        if (inMailMessage) {
-          setInmailMessage(
-            inMailMessage
-          );
-        }
-
-
-        if (connectionNote) {
-          setConnectionMessage(
-            connectionNote
-          );
-        }
-
-
-        setToast({
-          type: "success",
-          message:
-            "Details filled from job description.",
-        });
-
-      } else {
-
-        setToast({
-          type: "error",
-          message:
-            "Couldn't extract details from that description.",
-        });
 
       }
 
-    } catch (err) {
 
-      console.error(err);
+      const data =
+        response.data;
+
+
+      /* =================================================
+         Job Title
+      ================================================= */
+
+      const jobTitle =
+        data.job_title ||
+        "";
+
+
+      /*
+       * If project name is empty,
+       * use job title.
+       */
+
+      if (
+        !projectName.trim() &&
+        jobTitle
+      ) {
+
+        setProjectName(
+          jobTitle
+        );
+
+      }
+
+
+      /* =================================================
+         Keywords
+      ================================================= */
+
+      const extractedKeywords = [
+        jobTitle,
+        ...(data.skills || []),
+      ].filter(Boolean);
+
+
+      setKeywords(
+        extractedKeywords.length
+          ? extractedKeywords
+          : [""]
+      );
+
+
+      /* =================================================
+         Messages
+      ================================================= */
+
+      setInmailMessage(
+        data.inMailMessage ||
+        ""
+      );
+
+
+      setConnectionMessage(
+        data.connectionNote ||
+        ""
+      );
+
+
+      /* =================================================
+         Seniority
+      ================================================= */
+
+      if (
+        data.seniority_level
+      ) {
+
+        const seniority =
+          normalizeSeniority(
+            data.seniority_level
+          );
+
+
+        if (seniority) {
+
+          setSeniorityInclude([
+            seniority,
+          ]);
+
+          /*
+           * Make sure same seniority
+           * is not excluded.
+           */
+
+          setSeniorityExclude(
+            (prev) =>
+              prev.filter(
+                (item) =>
+                  item !==
+                  seniority
+              )
+          );
+
+        }
+
+      }
+
+
+      /* =================================================
+         Company List
+      ================================================= */
+
+      const companies =
+        Array.isArray(
+          data.company_list
+        )
+          ? data.company_list
+          : [];
+
+
+      setTargetCompanies(
+        companies.map(
+          (companyName) => ({
+            name:
+              companyName,
+
+            id: "",
+
+            matchedTitle:
+              "",
+
+            pictureUrl:
+              "",
+          })
+        )
+      );
+
+
+      setToast({
+        type: "success",
+        message:
+          `Details loaded. ${companies.length} target companies added.`,
+      });
+
+
+    } catch (error) {
+
+      console.error(
+        "Fetch details error:",
+        error
+      );
+
 
       setToast({
         type: "error",
         message:
-          err.response?.data?.detail ||
-          err.response?.data?.message ||
+          error?.response?.data?.detail ||
+          error?.response?.data?.message ||
+          error.message ||
           "Couldn't fetch job details.",
       });
 
     } finally {
 
-      setIsFetchingDetails(false);
+      setIsFetchingDetails(
+        false
+      );
 
       setTimeout(() => {
         setToast(null);
-      }, 3200);
+      }, 3500);
 
     }
   }
+
+
+  /* =======================================================
+     Resolve All Companies
+  ======================================================= */
+
+  async function resolveAllCompanies() {
+  const validCompanies =
+    targetCompanies.filter(
+      (company) =>
+        company.name?.trim()
+    );
+
+  if (!validCompanies.length) {
+    throw new Error(
+      "Please add at least one target company."
+    );
+  }
+
+  const resolvedCompanies = [];
+
+  /*
+   * Resolve company names to
+   * LinkedIn company IDs.
+   *
+   * Example:
+   *
+   * ServiceNow -> 29352
+   * SAP        -> 3185
+   *
+   * This lookup is necessary because
+   * your pipeline requires LinkedIn IDs.
+   */
+
+  for (
+    let index = 0;
+    index < validCompanies.length;
+    index++
+  ) {
+    const company =
+      validCompanies[index];
+
+    setRunningCompanyIndex(
+      index
+    );
+
+    /*
+     * If ID already exists,
+     * don't call Unipile again.
+     */
+
+    if (company.id) {
+      resolvedCompanies.push(
+        company
+      );
+
+      continue;
+    }
+
+    console.log(
+      `🔎 Resolving company ${index + 1}/${validCompanies.length}:`,
+      company.name
+    );
+
+    const resolved =
+      await resolveLinkedInCompany(
+        company.name
+      );
+
+    const resolvedCompany = {
+      ...company,
+
+      id:
+        resolved.id,
+
+      matchedTitle:
+        resolved.matchedTitle,
+
+      pictureUrl:
+        resolved.pictureUrl,
+    };
+
+    resolvedCompanies.push(
+      resolvedCompany
+    );
+
+    /*
+     * Update UI immediately.
+     */
+
+    setTargetCompanies(
+      (prev) =>
+        prev.map(
+          (item) =>
+            item.name ===
+            company.name
+              ? resolvedCompany
+              : item
+        )
+    );
+  }
+
+  return resolvedCompanies;
+}
 
 
   /* =======================================================
@@ -1363,68 +1722,213 @@ export default function ProjectAutomationV2() {
   ======================================================= */
 
   async function handleRunPipeline() {
-
-    if (isRunning) {
-      return;
-    }
-
-    setIsRunning(true);
-
-    setResult(null);
-
-    try {
-
-      const data =
-        await runOutreachPipeline({
-          projectName,
-          keywords,
-          inmailMessage,
-          connectionMessage,
-          locations,
-          seniorityInclude,
-          seniorityExclude,
-        });
-
-
-      setResult(data);
-
-
-      setToast({
-        type: "success",
-        message:
-          data.message ||
-          "Outreach pipeline completed successfully.",
-      });
-
-
-      /*
-       * Refresh existing projects
-       */
-
-      await loadProjects();
-
-    } catch (err) {
-
-      console.error(err);
-
-      setToast({
-        type: "error",
-        message:
-          err.response?.data?.detail ||
-          err.response?.data?.message ||
-          "Couldn't run the pipeline.",
-      });
-
-    } finally {
-
-      setIsRunning(false);
-
-      setTimeout(() => {
-        setToast(null);
-      }, 3200);
-
-    }
+  if (isRunning) {
+    return;
   }
+
+  /* =====================================================
+     Validation
+  ===================================================== */
+
+  if (!projectName.trim()) {
+    setToast({
+      type: "error",
+      message:
+        "Please enter a project name.",
+    });
+
+    return;
+  }
+
+  if (!targetCompanies.length) {
+    setToast({
+      type: "error",
+      message:
+        "Please add at least one target company.",
+    });
+
+    return;
+  }
+
+  setIsRunning(true);
+
+  setRunningCompanyIndex(
+    null
+  );
+
+  setResult(null);
+
+  try {
+    /* ===================================================
+       STEP 1
+       Resolve all company names
+    =================================================== */
+
+    setToast({
+      type: "success",
+      message:
+        "Resolving LinkedIn company IDs...",
+    });
+
+    const resolvedCompanies =
+      await resolveAllCompanies();
+
+    if (
+      !resolvedCompanies.length
+    ) {
+      throw new Error(
+        "No companies could be resolved."
+      );
+    }
+
+    /* ===================================================
+       STEP 2
+       Extract company IDs
+    =================================================== */
+
+    const companyIds =
+      resolvedCompanies
+        .map(
+          (company) =>
+            company.id
+        )
+        .filter(Boolean);
+
+    if (!companyIds.length) {
+      throw new Error(
+        "No valid LinkedIn company IDs found."
+      );
+    }
+
+    console.log(
+      "=========================================="
+    );
+
+    console.log(
+      "🚀 STARTING BULK PIPELINE"
+    );
+
+    console.log(
+      "Total companies:",
+      resolvedCompanies.length
+    );
+
+    console.log(
+      "Company IDs:",
+      companyIds
+    );
+
+    console.log(
+      "=========================================="
+    );
+
+    /* ===================================================
+       STEP 3
+       ONE PIPELINE REQUEST
+    =================================================== */
+
+    setToast({
+      type: "success",
+      message:
+        `Starting pipeline for ${companyIds.length} companies...`,
+    });
+
+    const response =
+      await runOutreachPipeline({
+        projectName:
+          projectName.trim(),
+
+        keywords,
+
+        inmailMessage,
+
+        connectionMessage,
+
+        limit: 100,
+
+        locations,
+
+        seniorityInclude,
+
+        seniorityExclude,
+
+        /*
+         * ALL COMPANY IDs
+         */
+
+        companyIds,
+      });
+
+    /* ===================================================
+       STEP 4
+       Save Result
+    =================================================== */
+
+    setResult({
+      success: true,
+
+      response,
+
+      companies:
+        resolvedCompanies,
+
+      total:
+        resolvedCompanies.length,
+    });
+
+    /* ===================================================
+       Success
+    =================================================== */
+
+    setToast({
+      type: "success",
+      message:
+        `Pipeline started successfully for ${resolvedCompanies.length} companies.`,
+    });
+
+    /* ===================================================
+       Refresh Existing Projects
+    =================================================== */
+
+    await loadProjects();
+
+  } catch (error) {
+    console.error(
+      "❌ Bulk pipeline error:",
+      error
+    );
+
+    const errorMessage =
+      error?.response?.data?.detail ||
+      error?.response?.data?.message ||
+      error?.message ||
+      "Couldn't run the pipeline.";
+
+    setResult({
+      success: false,
+
+      error:
+        errorMessage,
+    });
+
+    setToast({
+      type: "error",
+      message:
+        errorMessage,
+    });
+
+  } finally {
+    setRunningCompanyIndex(
+      null
+    );
+
+    setIsRunning(false);
+
+    setTimeout(() => {
+      setToast(null);
+    }, 5000);
+  }
+}
 
 
   /* =======================================================
@@ -1436,7 +1940,7 @@ export default function ProjectAutomationV2() {
 
 
       {/* ===================================================
-          Header
+          HEADER
       =================================================== */}
 
       <header className="bg-primary text-white">
@@ -1447,15 +1951,22 @@ export default function ProjectAutomationV2() {
 
             <Link
               to="/"
-              aria-label="Back to dashboard"
-              className="text-white/80 transition-colors hover:text-white"
+              className="text-white/80 hover:text-white"
             >
-              <ArrowLeft size={18} />
+
+              <ArrowLeft
+                size={18}
+              />
+
             </Link>
 
 
             <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/15">
-              <Rocket size={18} />
+
+              <Rocket
+                size={18}
+              />
+
             </span>
 
 
@@ -1466,14 +1977,14 @@ export default function ProjectAutomationV2() {
           </div>
 
 
-          <div className="flex items-center gap-2 font-display text-sm font-medium">
+          <div className="flex items-center gap-2 text-sm font-medium">
 
             <UserCircle2
               size={22}
-              className="text-white/80"
             />
 
-            {email || "Account"}
+            {email ||
+              "Account"}
 
           </div>
 
@@ -1483,7 +1994,7 @@ export default function ProjectAutomationV2() {
 
 
       {/* ===================================================
-          Main
+          MAIN
       =================================================== */}
 
       <div className="mx-auto max-w-7xl px-6 py-8">
@@ -1498,7 +2009,7 @@ export default function ProjectAutomationV2() {
 
 
           {/* =================================================
-              LEFT — FORM
+              FORM
           ================================================= */}
 
           <section className="card p-8">
@@ -1519,7 +2030,11 @@ export default function ProjectAutomationV2() {
 
 
               <div className="hidden h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary sm:flex">
-                <Rocket size={19} />
+
+                <Rocket
+                  size={19}
+                />
+
               </div>
 
             </div>
@@ -1528,7 +2043,9 @@ export default function ProjectAutomationV2() {
             <div className="mt-7 flex flex-col gap-5">
 
 
-              {/* Project */}
+              {/* =================================================
+                  PROJECT
+              ================================================= */}
 
               <div>
 
@@ -1544,14 +2061,16 @@ export default function ProjectAutomationV2() {
                       e.target.value
                     )
                   }
-                  placeholder="Enter project name e.g. My First Project"
+                  placeholder="Enter project name e.g. GTM Revenue Operations Leader"
                   className="input-field"
                 />
 
               </div>
 
 
-              {/* Job Description */}
+              {/* =================================================
+                  JOB DESCRIPTION
+              ================================================= */}
 
               <div>
 
@@ -1585,13 +2104,20 @@ export default function ProjectAutomationV2() {
                 >
 
                   {isFetchingDetails ? (
+
                     <Loader2
                       size={14}
                       className="animate-spin"
                     />
+
                   ) : (
-                    <Sparkles size={14} />
+
+                    <Sparkles
+                      size={14}
+                    />
+
                   )}
+
 
                   {isFetchingDetails
                     ? "Fetching..."
@@ -1602,13 +2128,16 @@ export default function ProjectAutomationV2() {
               </div>
 
 
-              {/* Keywords */}
+              {/* =================================================
+                  KEYWORDS
+              ================================================= */}
 
               <div>
 
                 <label className="field-label">
                   Keywords
                 </label>
+
 
                 <div className="flex flex-col gap-3">
 
@@ -1632,26 +2161,26 @@ export default function ProjectAutomationV2() {
                               e.target.value
                             )
                           }
-                          placeholder={
-                            index === 0
-                              ? "Enter keyword e.g. Python"
-                              : "Enter keyword e.g. Java"
-                          }
+                          placeholder="Enter keyword"
                           className="input-field"
                         />
 
 
-                        {index === 0 ? (
+                        {index ===
+                        0 ? (
 
                           <button
                             type="button"
                             onClick={
                               addKeyword
                             }
-                            aria-label="Add keyword"
-                            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-white transition-colors hover:bg-primary-600"
+                            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-white"
                           >
-                            <Plus size={18} />
+
+                            <Plus
+                              size={18}
+                            />
+
                           </button>
 
                         ) : (
@@ -1663,10 +2192,13 @@ export default function ProjectAutomationV2() {
                                 index
                               )
                             }
-                            aria-label="Remove keyword"
-                            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-spark text-white transition-colors hover:bg-[#E5573D]"
+                            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-spark text-white"
                           >
-                            <X size={18} />
+
+                            <X
+                              size={18}
+                            />
+
                           </button>
 
                         )}
@@ -1678,46 +2210,59 @@ export default function ProjectAutomationV2() {
 
                 </div>
 
-
                 <p className="mt-2 text-xs text-slate-light">
-                  Add multiple keywords. They will be combined using AND.
+                  Keywords are combined using AND.
                 </p>
 
               </div>
 
 
-              {/* Company */}
+              {/* =================================================
+                  OPTIONAL COMPANY SEARCH
+              ================================================= */}
 
-              <SearchField
-                label="Search Company"
-                type="COMPANY"
-                placeholder="e.g. Microsoft"
-                modalTitle="Select a company"
-                onSelect={(item) =>
-                  setCompany({
-                    id: item.id,
-                    title: item.title,
-                  })
-                }
-              />
+              <div>
 
-
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-
-                <ReadOnlyField
-                  label="Company ID"
-                  value={company.id}
+                <SearchField
+                  label="Search Company"
+                  type="COMPANY"
+                  placeholder="e.g. Microsoft"
+                  modalTitle="Select a company"
+                  onSelect={(item) =>
+                    setCompany({
+                      id:
+                        item.id,
+                      title:
+                        item.title,
+                    })
+                  }
                 />
 
-                <ReadOnlyField
-                  label="Company"
-                  value={company.title}
-                />
+
+                <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2">
+
+                  <ReadOnlyField
+                    label="Company ID"
+                    value={
+                      company.id
+                    }
+                  />
+
+                  <ReadOnlyField
+                    label="Company"
+                    value={
+                      company.title
+                    }
+                  />
+
+                </div>
 
               </div>
 
 
-              {/* Locations */}
+              {/* =================================================
+                  LOCATIONS
+              ================================================= */}
 
               <div>
 
@@ -1725,11 +2270,12 @@ export default function ProjectAutomationV2() {
                   Locations
                 </label>
 
+
                 <div className="flex flex-col gap-4">
 
                   {locations.map(
                     (
-                      loc,
+                      location,
                       index
                     ) => (
 
@@ -1744,10 +2290,12 @@ export default function ProjectAutomationV2() {
 
                             <SearchField
                               label={
-                                index === 0
+                                index ===
+                                0
                                   ? "Search Location"
                                   : `Search Location ${
-                                      index + 1
+                                      index +
+                                      1
                                     }`
                               }
                               type="LOCATION"
@@ -1766,17 +2314,21 @@ export default function ProjectAutomationV2() {
                           </div>
 
 
-                          {index === 0 ? (
+                          {index ===
+                          0 ? (
 
                             <button
                               type="button"
                               onClick={
                                 addLocation
                               }
-                              aria-label="Add location"
-                              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-white transition-colors hover:bg-primary-600"
+                              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-white"
                             >
-                              <Plus size={18} />
+
+                              <Plus
+                                size={18}
+                              />
+
                             </button>
 
                           ) : (
@@ -1788,10 +2340,13 @@ export default function ProjectAutomationV2() {
                                   index
                                 )
                               }
-                              aria-label="Remove location"
-                              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-spark text-white transition-colors hover:bg-[#E5573D]"
+                              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-spark text-white"
                             >
-                              <X size={18} />
+
+                              <X
+                                size={18}
+                              />
+
                             </button>
 
                           )}
@@ -1804,14 +2359,14 @@ export default function ProjectAutomationV2() {
                           <ReadOnlyField
                             label="Location ID"
                             value={
-                              loc.id
+                              location.id
                             }
                           />
 
                           <ReadOnlyField
                             label="Location"
                             value={
-                              loc.title
+                              location.title
                             }
                           />
 
@@ -1827,37 +2382,236 @@ export default function ProjectAutomationV2() {
               </div>
 
 
-              {/* Seniority */}
+              {/* =================================================
+                  SENIORITY
+              ================================================= */}
 
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <div>
 
-                <SeniorityBucketBox
-                  label="Seniority Include"
-                  selected={
-                    seniorityInclude
-                  }
-                  onToggle={
-                    toggleInclude
-                  }
-                />
+                <div className="mb-3 flex items-center justify-between">
 
-                <SeniorityBucketBox
-                  label="Seniority Exclude"
-                  selected={
-                    seniorityExclude
-                  }
-                  onToggle={
-                    toggleExclude
-                  }
-                  disabledOptions={
-                    seniorityInclude
-                  }
-                />
+                  <label className="field-label !mb-0">
+                    Seniority
+                  </label>
+
+
+                  {seniorityInclude.length >
+                    0 && (
+
+                    <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-semibold text-primary">
+
+                      AI detected:{" "}
+
+                      {seniorityInclude.join(
+                        ", "
+                      )}
+
+                    </span>
+
+                  )}
+
+                </div>
+
+
+                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+
+                  <SeniorityBucketBox
+                    label="Seniority Include"
+                    selected={
+                      seniorityInclude
+                    }
+                    onToggle={
+                      toggleInclude
+                    }
+                  />
+
+
+                  <SeniorityBucketBox
+                    label="Seniority Exclude"
+                    selected={
+                      seniorityExclude
+                    }
+                    onToggle={
+                      toggleExclude
+                    }
+                    disabledOptions={
+                      seniorityInclude
+                    }
+                  />
+
+                </div>
 
               </div>
 
 
-              {/* InMail */}
+              {/* =================================================
+                  TARGET COMPANIES
+              ================================================= */}
+
+              <div>
+
+                <div className="flex items-center justify-between">
+
+                  <div>
+
+                    <label className="field-label !mb-0">
+                      Target Companies
+                    </label>
+
+                    <p className="mt-1 text-xs text-slate-light">
+                        All selected companies will be included in one pipeline.
+                    </p>
+
+                  </div>
+
+
+                  <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
+
+                    {
+                      targetCompanies.length
+                    }
+
+                  </span>
+
+                </div>
+
+
+                <div className="mt-3 rounded-2xl border border-slate-200 bg-surface p-3">
+
+                  {targetCompanies.length ===
+                  0 ? (
+
+                    <div className="py-8 text-center">
+
+                      <FolderOpen
+                        size={25}
+                        className="mx-auto text-slate-light"
+                      />
+
+                      <p className="mt-2 text-sm font-semibold text-ink">
+                        No target companies
+                      </p>
+
+                      <p className="mt-1 text-xs text-slate-light">
+                        Click Fetch Details or add one manually.
+                      </p>
+
+                    </div>
+
+                  ) : (
+
+                    <div className="max-h-[360px] overflow-y-auto pr-1">
+
+                      <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+
+                        {targetCompanies.map(
+                          (
+                            targetCompany,
+                            index
+                          ) => (
+
+                            <div
+                              key={`${index}-${targetCompany.name}`}
+                              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-2"
+                            >
+
+                              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary">
+
+                                {index +
+                                  1}
+
+                              </div>
+
+
+                              <div className="min-w-0 flex-1">
+
+                                <input
+                                  type="text"
+                                  value={
+                                    targetCompany.name
+                                  }
+                                  onChange={(
+                                    e
+                                  ) =>
+                                    updateTargetCompany(
+                                      index,
+                                      e.target.value
+                                    )
+                                  }
+                                  className="w-full border-0 bg-transparent px-1 py-1 text-xs font-medium text-ink outline-none"
+                                  placeholder="Company name"
+                                />
+
+
+                                {targetCompany.id && (
+
+                                  <p className="px-1 text-[9px] text-green-600">
+
+                                    LinkedIn ID:{" "}
+
+                                    {
+                                      targetCompany.id
+                                    }
+
+                                  </p>
+
+                                )}
+
+                              </div>
+
+
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  removeTargetCompany(
+                                    index
+                                  )
+                                }
+                                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-light hover:bg-red-50 hover:text-red-500"
+                              >
+
+                                <X
+                                  size={15}
+                                />
+
+                              </button>
+
+                            </div>
+
+                          )
+                        )}
+
+                      </div>
+
+                    </div>
+
+                  )}
+
+
+                  <button
+                    type="button"
+                    onClick={
+                      addTargetCompany
+                    }
+                    className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-primary/40 bg-primary/[0.03] px-4 py-3 text-xs font-semibold text-primary hover:bg-primary/10"
+                  >
+
+                    <Plus
+                      size={15}
+                    />
+
+                    Add Company
+
+                  </button>
+
+                </div>
+
+              </div>
+
+
+              {/* =================================================
+                  INMAIL
+              ================================================= */}
 
               <div>
 
@@ -1882,7 +2636,9 @@ export default function ProjectAutomationV2() {
               </div>
 
 
-              {/* Connection */}
+              {/* =================================================
+                  CONNECTION
+              ================================================= */}
 
               <div>
 
@@ -1907,29 +2663,40 @@ export default function ProjectAutomationV2() {
               </div>
 
 
-              {/* Run */}
+              {/* =================================================
+                  RUN BUTTON
+              ================================================= */}
 
               <button
                 type="button"
                 onClick={
                   handleRunPipeline
                 }
-                disabled={isRunning}
-                className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-ink px-6 py-3.5 font-display text-sm font-semibold text-white transition-all duration-200 hover:bg-ink/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={
+                  isRunning
+                }
+                className="mt-2 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-ink px-6 py-3.5 font-display text-sm font-semibold text-white transition-all hover:bg-ink/90 disabled:cursor-not-allowed disabled:opacity-50"
               >
 
                 {isRunning ? (
+
                   <Loader2
                     size={16}
                     className="animate-spin"
                   />
+
                 ) : (
-                  <Rocket size={16} />
+
+                  <Rocket
+                    size={16}
+                  />
+
                 )}
 
+
                 {isRunning
-                  ? "Running Pipeline..."
-                  : "Run Pipeline"}
+  ? "Running Pipeline..."
+  : "Run Pipeline"}
 
               </button>
 
@@ -1939,29 +2706,22 @@ export default function ProjectAutomationV2() {
 
 
           {/* =================================================
-              RIGHT — PROJECT PANEL
+              PROJECT PANEL
           ================================================= */}
 
           <aside className="lg:sticky lg:top-6">
 
             <section className="card overflow-hidden">
 
-
-              {/* =================================================
-                  PANEL HEADER
-              ================================================= */}
-
               <div
-                className={`border-b border-slate-200 bg-white ${
+                className={
                   projectsCollapsed
                     ? "px-2 py-3"
                     : "px-5 py-5"
-                }`}
+                }
               >
 
                 {projectsCollapsed ? (
-
-                  /* Collapsed */
 
                   <div className="flex flex-col items-center gap-3">
 
@@ -1972,47 +2732,47 @@ export default function ProjectAutomationV2() {
                           false
                         )
                       }
-                      className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-light transition-colors hover:bg-surface hover:text-primary"
-                      title="Expand projects"
+                      className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-light hover:bg-surface hover:text-primary"
                     >
-                      <PanelLeftOpen size={18} />
+
+                      <PanelLeftOpen
+                        size={18}
+                      />
+
                     </button>
 
 
                     <div className="h-px w-8 bg-slate-200" />
 
 
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setProjectsCollapsed(
-                          false
-                        )
+                    <FolderOpen
+                      size={18}
+                      className="text-primary"
+                    />
+
+
+                    <span className="rounded-full bg-surface px-2 py-1 text-[10px] font-bold">
+                      {
+                        projects.length
                       }
-                      className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary"
-                      title="Expand projects"
-                    >
-                      <FolderOpen size={17} />
-                    </button>
-
-
-                    <span className="rounded-full bg-surface px-2 py-1 text-[10px] font-bold text-slate">
-                      {projects.length}
                     </span>
 
                   </div>
 
                 ) : (
 
-                  /* Expanded */
-
                   <div className="flex items-center justify-between">
 
                     <div className="flex items-center gap-3">
 
                       <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                        <FolderOpen size={18} />
+
+                        <FolderOpen
+                          size={18}
+                        />
+
                       </div>
+
 
                       <div>
 
@@ -2031,8 +2791,12 @@ export default function ProjectAutomationV2() {
 
                     <div className="flex items-center gap-2">
 
-                      <span className="rounded-full bg-surface px-2.5 py-1 text-xs font-bold text-slate">
-                        {projects.length}
+                      <span className="rounded-full bg-surface px-2.5 py-1 text-xs font-bold">
+
+                        {
+                          projects.length
+                        }
+
                       </span>
 
 
@@ -2044,9 +2808,12 @@ export default function ProjectAutomationV2() {
                           )
                         }
                         className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-light hover:bg-surface hover:text-primary"
-                        title="Collapse projects"
                       >
-                        <PanelLeftClose size={17} />
+
+                        <PanelLeftClose
+                          size={17}
+                        />
+
                       </button>
 
                     </div>
@@ -2058,17 +2825,13 @@ export default function ProjectAutomationV2() {
               </div>
 
 
-              {/* =================================================
-                  PROJECT LIST
-              ================================================= */}
-
               {!projectsCollapsed && (
 
                 <div className="max-h-[calc(100vh-190px)] overflow-y-auto p-4">
 
                   {isLoadingProjects ? (
 
-                    <div className="flex items-center justify-center py-10">
+                    <div className="flex justify-center py-10">
 
                       <Loader2
                         size={24}
@@ -2077,27 +2840,18 @@ export default function ProjectAutomationV2() {
 
                     </div>
 
-                  ) : projects.length === 0 ? (
+                  ) : projects.length ===
+                    0 ? (
 
                     <div className="py-10 text-center">
 
-                      <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-surface">
+                      <FolderOpen
+                        size={25}
+                        className="mx-auto text-slate-light"
+                      />
 
-                        <FolderOpen
-                          size={21}
-                          className="text-slate-light"
-                        />
-
-                      </div>
-
-
-                      <p className="mt-3 text-sm font-semibold text-ink">
+                      <p className="mt-3 text-sm font-semibold">
                         No projects yet
-                      </p>
-
-
-                      <p className="mt-1 text-xs text-slate-light">
-                        Run your first outreach pipeline.
                       </p>
 
                     </div>
@@ -2119,12 +2873,12 @@ export default function ProjectAutomationV2() {
                                 project
                               )
                             }
-                            className="group w-full rounded-2xl border border-slate-200 bg-white p-4 text-left transition-all duration-200 hover:border-primary/40 hover:bg-primary/[0.03] hover:shadow-md"
+                            className="group w-full rounded-2xl border border-slate-200 bg-white p-4 text-left hover:border-primary/40 hover:bg-primary/[0.03] hover:shadow-md"
                           >
 
                             <div className="flex items-start gap-3">
 
-                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface text-slate transition-colors group-hover:bg-primary/10 group-hover:text-primary">
+                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface text-slate group-hover:bg-primary/10 group-hover:text-primary">
 
                                 <FolderOpen
                                   size={17}
@@ -2136,28 +2890,29 @@ export default function ProjectAutomationV2() {
                               <div className="min-w-0 flex-1">
 
                                 <h3 className="truncate font-display text-sm font-bold text-ink">
+
                                   {
                                     project.project_name
                                   }
+
                                 </h3>
 
 
-                                <div className="mt-2 flex items-center gap-3">
+                                <p className="mt-2 text-xs text-slate-light">
 
-                                  <span className="inline-flex items-center gap-1 text-xs text-slate-light">
+                                  <Users
+                                    size={12}
+                                    className="mr-1 inline"
+                                  />
 
-                                    <Users size={12} />
+                                  {
+                                    project.candidate_count
+                                  }
 
-                                    {
-                                      project.candidate_count
-                                    }
+                                  {" "}
+                                  candidates
 
-                                    {" "}
-                                    candidates
-
-                                  </span>
-
-                                </div>
+                                </p>
 
 
                                 {project.first_created_at && (
@@ -2177,7 +2932,7 @@ export default function ProjectAutomationV2() {
                               </div>
 
 
-                              <span className="mt-1 text-slate-300 transition-transform group-hover:translate-x-0.5 group-hover:text-primary">
+                              <span className="text-slate-300 group-hover:text-primary">
                                 →
                               </span>
 
@@ -2203,40 +2958,129 @@ export default function ProjectAutomationV2() {
         </div>
 
 
-        {/* =====================================================
-            Pipeline Result
-        ===================================================== */}
+        {/* ===================================================
+            RESULT
+        =================================================== */}
 
         {result && (
 
-          <section className="card animate-fade-up mt-6 p-6">
+          <section className="card mt-6 p-6">
 
-            <div className="flex items-start gap-3">
+            <div className="flex items-center gap-3">
 
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-green-50 text-green-600">
-                <Rocket size={18} />
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-50 text-green-600">
+
+                <Rocket
+                  size={18}
+                />
+
               </div>
 
 
               <div>
 
-                <p className="font-display text-sm font-semibold text-ink">
-                  {result.message}
+                <h3 className="font-display text-sm font-bold text-ink">
+                  Pipeline Results
+                </h3>
+
+                <p className="text-xs text-slate-light">
+
+                  {result.successful?.length ||
+                    0}
+
+                  {" "}successful /{" "}
+
+                  {result.failed?.length ||
+                    0}
+
+                  {" "}failed
+
                 </p>
-
-
-                {result.project_id && (
-
-                  <p className="mt-1 text-xs text-slate-light">
-                    Project ID:{" "}
-                    {result.project_id}
-                  </p>
-
-                )}
 
               </div>
 
             </div>
+
+
+            {result.successful?.length >
+              0 && (
+
+              <div className="mt-5">
+
+                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-green-600">
+                  Successful
+                </p>
+
+
+                <div className="flex flex-wrap gap-2">
+
+                  {result.successful.map(
+                    (item) => (
+
+                      <span
+                        key={
+                          item.companyId
+                        }
+                        className="rounded-full bg-green-50 px-3 py-1.5 text-xs font-medium text-green-700"
+                      >
+
+                        ✓{" "}
+                        {
+                          item.company
+                        }
+
+                      </span>
+
+                    )
+                  )}
+
+                </div>
+
+              </div>
+
+            )}
+
+
+            {result.failed?.length >
+              0 && (
+
+              <div className="mt-5">
+
+                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-red-600">
+                  Failed
+                </p>
+
+
+                <div className="flex flex-col gap-2">
+
+                  {result.failed.map(
+                    (item) => (
+
+                      <div
+                        key={
+                          item.company
+                        }
+                        className="rounded-xl bg-red-50 p-3 text-xs text-red-700"
+                      >
+
+                        <b>
+                          {item.company}
+                        </b>
+
+                        {" — "}
+
+                        {item.error}
+
+                      </div>
+
+                    )
+                  )}
+
+                </div>
+
+              </div>
+
+            )}
 
           </section>
 
@@ -2245,14 +3089,16 @@ export default function ProjectAutomationV2() {
       </div>
 
 
-      {/* =====================================================
-          Project Modal
-      ===================================================== */}
+      {/* ===================================================
+          PROJECT MODAL
+      =================================================== */}
 
       {selectedProject && (
 
         <ProjectDetailsModal
-          project={selectedProject}
+          project={
+            selectedProject
+          }
           candidates={
             projectCandidates
           }
@@ -2267,11 +3113,9 @@ export default function ProjectAutomationV2() {
       )}
 
 
-      {/* =====================================================
-          Toast
-      ===================================================== */}
-
-      <Toast toast={toast} />
+      <Toast
+        toast={toast}
+      />
 
     </div>
   );
