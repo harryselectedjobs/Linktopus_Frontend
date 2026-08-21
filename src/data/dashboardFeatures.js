@@ -30,6 +30,16 @@ export const dashboardFeatures = [
     to: "/project-automation-v2",
   },
   {
+  key: "outreach-candidates",
+  title: "Outreach Candidates",
+  description:
+    "View and manage candidates selected for your LinkedIn outreach campaigns.",
+  icon: "Users",
+  status: "active",
+  cta: "Get started",
+  to: "/outreach-candidates",
+},
+  {
     key: "content-calendar",
     title: "Content Calendar",
     description: "Visual scheduling grid for your upcoming posts",

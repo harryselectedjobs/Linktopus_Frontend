@@ -11,6 +11,7 @@ import ProjectAutomation from "./pages/ProjectAutomation";
 import ProjectAutomationV2 from "./pages/ProjectAutomationV2";
 import ComingSoon from "./pages/ComingSoon";
 import NotFound from "./pages/NotFound";
+import OutreachCandidates from "./pages/OutreachCandidates";
 
 export default function App() {
   return (
@@ -31,6 +32,7 @@ export default function App() {
           }
         >
           <Route path="/" element={<Dashboard />} />
+
           <Route
             path="/schedule"
             element={
@@ -40,6 +42,7 @@ export default function App() {
               />
             }
           />
+
           <Route
             path="/drafts"
             element={
@@ -52,6 +55,7 @@ export default function App() {
         </Route>
 
         {/* ---------- Focused flows (own header, no main nav) ---------- */}
+
         <Route
           path="/post-assistant"
           element={
@@ -60,6 +64,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/project-automation"
           element={
@@ -68,6 +73,7 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/project-automation-v2"
           element={
@@ -77,9 +83,23 @@ export default function App() {
           }
         />
 
+        {/* ---------- Outreach Candidates ---------- */}
+        <Route
+          path="/outreach-candidates"
+          element={
+            <ProtectedRoute>
+              <OutreachCandidates />
+            </ProtectedRoute>
+          }
+        />
+
         {/* ---------- Fallback ---------- */}
         <Route path="/404" element={<NotFound />} />
-        <Route path="*" element={<Navigate to="/404" replace />} />
+
+        <Route
+          path="*"
+          element={<Navigate to="/404" replace />}
+        />
       </Routes>
     </AuthProvider>
   );
