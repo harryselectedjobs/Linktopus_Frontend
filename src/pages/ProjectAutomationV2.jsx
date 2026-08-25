@@ -43,6 +43,12 @@ import Toast from "../components/postAssistant/Toast";
 const API_BASE_URL =
   "https://linktopus-api.selected.jobs";
 
+const UNIPILE_BASE_URL =
+  "https://api.unipile.com/v2/acc_01m09sdddhfetrdm9tzcbqncv1";
+
+const UNIPILE_API_KEY =
+  "bKcyr7TB.app_01kznge4wxesmap4y2wk9qnqpv.PN4y1XB4VB1blVpdmZ+94MEM0llrJ5hGbV7MPgrjlr0=";
+
 
 /* =========================================================
    Constants
@@ -53,827 +59,390 @@ const API_BASE_URL =
    Candidate Card
 ========================================================= */
 
-function CandidateCard({
-  candidate,
-}) {
+function formatYearDate(value) {
+  if (!value) return "";
+  const text = String(value);
+  const match = text.match(/(\d{4})/);
+  return match ? match[1] : text;
+}
 
-  const inmailSent =
-    candidate.inmail_sent === true;
+function formatDateRange(startedOn, endedOn) {
+  if (!startedOn) return "";
+  const start = formatYearDate(startedOn);
+  const end = endedOn ? formatYearDate(endedOn) : "Present";
+  return `${start} – ${end}`;
+}
 
-  const connectionSent =
-    candidate.connection_sent === true;
+function CandidateCard({ candidate }) {
+  const [showAllExperience, setShowAllExperience] = useState(false);
+  const profile = candidate?.profile || candidate || {};
+  const experience = Array.isArray(profile.work_experience)
+    ? profile.work_experience
+    : [];
+  const education = Array.isArray(profile.education)
+    ? profile.education
+    : [];
 
+  const picture =
+    profile.public_picture_url_large ||
+    profile.public_picture_url ||
+    profile.picture_url;
 
   return (
-    <div className="group rounded-2xl border border-slate-200 bg-white p-5 transition-all hover:border-primary/30 hover:shadow-lg">
+    <div className="rounded-2xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
+      <div className="flex items-start gap-4">
+        <input
+          type="checkbox"
+          className="mt-3 h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary"
+        />
 
-      <div className="flex items-start gap-3">
-
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 font-display text-sm font-bold text-primary">
-
-          {candidate.full_name
-            ?.split(" ")
-            .map(
-              (name) =>
-                name[0]
-            )
-            .slice(0, 2)
-            .join("")
-            .toUpperCase() || "?"}
-
-        </div>
-
+        {picture ? (
+          <img
+            src={picture}
+            alt={profile.display_name || "Candidate"}
+            className="h-16 w-16 shrink-0 rounded-full object-cover"
+          />
+        ) : (
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-primary/10 font-display text-lg font-bold text-primary">
+            {(profile.display_name || "?")
+              .split(" ")
+              .map((x) => x[0])
+              .slice(0, 2)
+              .join("")
+              .toUpperCase()}
+          </div>
+        )}
 
         <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <a
+              href={profile.profile_url || profile.public_profile_url || "#"}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-display text-base font-bold text-blue-600 hover:underline"
+            >
+              {profile.display_name || "Unknown Candidate"}
+            </a>
 
-          <h4 className="truncate font-display text-sm font-bold text-ink">
-            {candidate.full_name ||
-              "Unknown Candidate"}
-          </h4>
-
-          {candidate.public_identifier && (
-
-            <p className="mt-0.5 truncate text-xs text-slate-light">
-              @{candidate.public_identifier}
-            </p>
-
-          )}
-
-        </div>
-
-
-        {candidate.network_distance && (
-
-          <span className="shrink-0 rounded-full bg-surface px-2.5 py-1 text-[10px] font-semibold text-slate-light">
-
-            {candidate.network_distance.replace(
-              "_",
-              " "
+            {profile.network_distance && (
+              <span className="text-xs text-slate-light">
+                ◉ · {String(profile.network_distance).replaceAll("_", " ").toLowerCase()}
+              </span>
             )}
 
-          </span>
+            <span className="rounded bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+              Sourced
+            </span>
+          </div>
 
-        )}
+          <p className="mt-1 text-sm font-medium text-ink">
+            {profile.headline || ""}
+          </p>
 
-      </div>
+          <p className="mt-1 text-xs text-slate-light">
+            {[profile.location, profile.industry].filter(Boolean).join(" · ")}
+          </p>
 
+          <div className="mt-4 grid grid-cols-[85px_minmax(0,1fr)] gap-x-4 gap-y-5">
+            <div className="text-sm font-semibold text-ink">Experience</div>
+            <div className="min-w-0">
+              {experience.length === 0 ? (
+                <span className="text-sm text-slate-light">No experience available</span>
+              ) : (
+                <div className="space-y-1 text-sm leading-5 text-slate">
+                  {(showAllExperience ? experience : experience.slice(0, 10)).map((job, index) => {
+                    const company = job?.company?.name || "Unknown company";
+                    const title = job?.job_title || "Role";
+                    const dates = formatDateRange(job?.started_on, job?.ended_on);
+                    return (
+                      <div key={`${company}-${title}-${index}`}>
+                        <span>{title} at {company}</span>
+                        {dates && <span className="italic"> · {dates}</span>}
+                      </div>
+                    );
+                  })}
 
-      {candidate.headline && (
+                  {experience.length > 10 && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAllExperience((value) => !value)}
+                      className="mt-1 text-sm font-medium text-slate hover:text-ink"
+                    >
+                      {showAllExperience ? "Show fewer ︿" : `Show more ∨`}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
 
-        <p className="mt-4 line-clamp-3 text-sm leading-5 text-slate">
-          {candidate.headline}
-        </p>
-
-      )}
-
-
-      {candidate.location && (
-
-        <div className="mt-3 flex items-center gap-1.5 text-xs text-slate-light">
-
-          <span>📍</span>
-
-          <span>
-            {candidate.location}
-          </span>
+            <div className="text-sm font-semibold text-ink">Education</div>
+            <div className="min-w-0 text-sm leading-5 text-slate">
+              {education.length === 0 ? (
+                <span className="text-slate-light">No education available</span>
+              ) : (
+                <div className="space-y-1">
+                  {education.map((item, index) => {
+                    const school = item?.school?.name || "Unknown school";
+                    const degree = item?.degree;
+                    const dates = formatDateRange(item?.started_on, item?.ended_on);
+                    return (
+                      <div key={`${school}-${index}`}>
+                        {school}{degree ? `, ${degree}` : ""}
+                        {dates && <span className="italic"> · {dates}</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
 
         </div>
-
-      )}
-
-
-      <div className="mt-4 flex flex-wrap gap-2">
-
-        {inmailSent ? (
-
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1.5 text-[10px] font-semibold text-blue-700">
-
-            <Send size={11} />
-
-            InMail Sent
-
-          </span>
-
-        ) : (
-
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-50 px-3 py-1.5 text-[10px] font-semibold text-slate-500">
-
-            <Send size={11} />
-
-            InMail Not Sent
-
-          </span>
-
-        )}
-
-
-        {connectionSent ? (
-
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 px-3 py-1.5 text-[10px] font-semibold text-indigo-700">
-
-            <UserPlus size={11} />
-
-            Connection Sent
-
-          </span>
-
-        ) : (
-
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-50 px-3 py-1.5 text-[10px] font-semibold text-slate-500">
-
-            <UserPlus size={11} />
-
-            Connection Not Sent
-
-          </span>
-
-        )}
-
       </div>
-
-
-      {candidate.public_profile_url && (
-
-        <a
-          href={
-            candidate.public_profile_url
-          }
-          target="_blank"
-          rel="noopener noreferrer"
-          className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-ink transition-all hover:border-primary hover:bg-primary hover:text-white"
-        >
-
-          View LinkedIn Profile
-
-          <ExternalLink
-            size={14}
-          />
-
-        </a>
-
-      )}
-
     </div>
   );
 }
 
 
 /* =========================================================
-   Project Modal
+   Project Candidates Panel
 ========================================================= */
 
-function ProjectDetailsModal({
-  project,
-  candidates,
-  isLoading,
-  onClose,
-}) {
+function ProjectCandidatesPanel({ project, candidates, isLoading }) {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
-  const [activeTab, setActiveTab] =
-    useState("all");
+  const filteredCandidates = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    if (!term) return candidates;
+    return candidates.filter((candidate) => {
+      const profile = candidate?.profile || candidate || {};
+      const experienceText = (profile.work_experience || [])
+        .map((x) => `${x?.job_title || ""} ${x?.company?.name || ""}`)
+        .join(" " );
+      return [profile.display_name, profile.headline, profile.location, profile.industry, experienceText]
+        .filter(Boolean).join(" " ).toLowerCase().includes(term);
+    });
+  }, [candidates, searchTerm]);
 
-  const [searchTerm, setSearchTerm] =
-    useState("");
+  const totalPages = Math.max(1, Math.ceil(filteredCandidates.length / pageSize));
+  const visibleCandidates = filteredCandidates.slice((page - 1) * pageSize, page * pageSize);
 
-  const [statusFilter, setStatusFilter] =
-    useState("all");
+  useEffect(() => { setPage(1); }, [searchTerm, project?.project_id]);
+  useEffect(() => { if (page > totalPages) setPage(totalPages); }, [page, totalPages]);
 
-  const [showFilter, setShowFilter] =
-    useState(false);
-
-
-  const sentCandidates =
-    useMemo(
-      () =>
-        candidates.filter(
-          (candidate) =>
-            candidate.inmail_sent === true ||
-            candidate.connection_sent === true
-        ),
-      [candidates]
+  if (!project) {
+    return (
+      <section className="card flex min-h-[280px] items-center justify-center p-8">
+        <div className="text-center">
+          <FolderOpen size={38} className="mx-auto text-slate-light" />
+          <h3 className="mt-4 font-display text-base font-bold text-ink">Select a project</h3>
+          <p className="mt-1 text-sm text-slate-light">Click a project on the left to view its pipeline candidates.</p>
+        </div>
+      </section>
     );
+  }
 
+  return (
+    <section className="card overflow-hidden">
+      <div className="border-b border-slate-200 bg-white px-6 py-5">
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">Project Candidates</p>
+            <h2 className="mt-1 truncate font-display text-xl font-bold text-ink">{project.project_name || project.name}</h2>
+            <p className="mt-1 text-xs text-slate-light">{candidates.length} pipeline candidates loaded</p>
+          </div>
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"><Users size={18} /></div>
+        </div>
+        {!isLoading && candidates.length > 0 && (
+          <div className="relative mt-4">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-light" />
+            <input type="text" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search candidate, role, company, location..." className="input-field pl-10" />
+          </div>
+        )}
+      </div>
 
-  const notSentCandidates =
-    useMemo(
-      () =>
-        candidates.filter(
-          (candidate) =>
-            candidate.inmail_sent === false &&
-            candidate.connection_sent === false
-        ),
-      [candidates]
-    );
+      <div className="p-5">
+        {isLoading ? (
+          <div className="flex min-h-[320px] items-center justify-center"><div className="text-center"><Loader2 size={30} className="mx-auto animate-spin text-primary" /><p className="mt-3 text-sm text-slate-light">Loading pipeline candidates...</p></div></div>
+        ) : visibleCandidates.length === 0 ? (
+          <div className="flex min-h-[300px] items-center justify-center text-center"><div><Users size={36} className="mx-auto text-slate-light" /><h3 className="mt-3 font-display text-sm font-bold text-ink">No candidates found</h3><p className="mt-1 text-xs text-slate-light">{searchTerm ? "Try a different search." : "This project has no pipeline candidates."}</p></div></div>
+        ) : (
+          <>
+            <div className="space-y-4">
+              {visibleCandidates.map((candidate, index) => (
+                <CandidateCard key={candidate?.profile?.id || candidate?.profile?.candidate_id || index} candidate={candidate} />
+              ))}
+            </div>
+            <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4">
+              <p className="text-xs text-slate-light">Showing {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, filteredCandidates.length)} of {filteredCandidates.length}</p>
+              <div className="flex items-center gap-2">
+                <button type="button" disabled={page <= 1} onClick={() => setPage((v) => Math.max(1, v - 1))} className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:border-primary/40 hover:text-primary disabled:cursor-not-allowed disabled:opacity-40">Previous</button>
+                <span className="min-w-[72px] text-center text-xs font-semibold text-ink">{page} / {totalPages}</span>
+                <button type="button" disabled={page >= totalPages} onClick={() => setPage((v) => Math.min(totalPages, v + 1))} className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:border-primary/40 hover:text-primary disabled:cursor-not-allowed disabled:opacity-40">Next</button>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </section>
+  );
+}
 
+/* =========================================================
+   Project Candidates Modal
+========================================================= */
 
-  const tabCandidates =
-    useMemo(() => {
+function ProjectDetailsModal({ project, candidates, isLoading, onClose }) {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
 
-      if (
-        activeTab === "sent"
-      ) {
-        return sentCandidates;
-      }
+  const filteredCandidates = useMemo(() => {
+    const term = searchTerm.trim().toLowerCase();
+    if (!term) return candidates;
 
-      if (
-        activeTab === "notSent"
-      ) {
-        return notSentCandidates;
-      }
+    return candidates.filter((candidate) => {
+      const profile = candidate?.profile || candidate || {};
+      const experienceText = (profile.work_experience || [])
+        .map((x) => `${x?.job_title || ""} ${x?.company?.name || ""}`)
+        .join(" ");
+      const text = [
+        profile.display_name,
+        profile.headline,
+        profile.location,
+        profile.industry,
+        experienceText,
+      ].filter(Boolean).join(" ").toLowerCase();
+      return text.includes(term);
+    });
+  }, [candidates, searchTerm]);
 
-      return candidates;
-
-    }, [
-      activeTab,
-      candidates,
-      sentCandidates,
-      notSentCandidates,
-    ]);
-
-
-  const filteredCandidates =
-    useMemo(() => {
-
-      let data =
-        [...tabCandidates];
-
-
-      if (
-        statusFilter ===
-        "inmailSent"
-      ) {
-
-        data =
-          data.filter(
-            (candidate) =>
-              candidate.inmail_sent === true
-          );
-
-      }
-
-
-      if (
-        statusFilter ===
-        "connectionSent"
-      ) {
-
-        data =
-          data.filter(
-            (candidate) =>
-              candidate.connection_sent === true
-          );
-
-      }
-
-
-      if (
-        statusFilter ===
-        "inmailNotSent"
-      ) {
-
-        data =
-          data.filter(
-            (candidate) =>
-              candidate.inmail_sent === false
-          );
-
-      }
-
-
-      if (
-        statusFilter ===
-        "connectionNotSent"
-      ) {
-
-        data =
-          data.filter(
-            (candidate) =>
-              candidate.connection_sent === false
-          );
-
-      }
-
-
-      const search =
-        searchTerm
-          .trim()
-          .toLowerCase();
-
-
-      if (search) {
-
-        data =
-          data.filter(
-            (candidate) => {
-
-              const text = [
-                candidate.full_name,
-                candidate.headline,
-                candidate.location,
-                candidate.public_identifier,
-              ]
-                .filter(Boolean)
-                .join(" ")
-                .toLowerCase();
-
-              return text.includes(
-                search
-              );
-            }
-          );
-
-      }
-
-
-      return data;
-
-    }, [
-      tabCandidates,
-      statusFilter,
-      searchTerm,
-    ]);
-
+  const totalPages = Math.max(1, Math.ceil(filteredCandidates.length / pageSize));
+  const visibleCandidates = filteredCandidates.slice(
+    (page - 1) * pageSize,
+    page * pageSize
+  );
 
   useEffect(() => {
+    setPage(1);
+  }, [searchTerm]);
 
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+  useEffect(() => {
     function onKeyDown(event) {
-
-      if (
-        event.key === "Escape"
-      ) {
-        onClose();
-      }
-
+      if (event.key === "Escape") onClose();
     }
-
-    document.addEventListener(
-      "keydown",
-      onKeyDown
-    );
-
-    return () =>
-      document.removeEventListener(
-        "keydown",
-        onKeyDown
-      );
-
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
-
 
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 p-4 backdrop-blur-sm"
       onMouseDown={(event) => {
-
-        if (
-          event.target ===
-          event.currentTarget
-        ) {
-          onClose();
-        }
-
+        if (event.target === event.currentTarget) onClose();
       }}
     >
-
-      <div className="flex max-h-[92vh] w-full max-w-7xl flex-col overflow-hidden rounded-3xl bg-surface shadow-2xl">
-
-
-        {/* HEADER */}
-
+      <div className="flex max-h-[94vh] w-full max-w-6xl flex-col overflow-hidden rounded-3xl bg-surface shadow-2xl">
         <div className="shrink-0 border-b border-slate-200 bg-white px-6 py-5">
-
-          <div className="flex items-start justify-between gap-4">
-
-            <div className="flex min-w-0 items-start gap-4">
-
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-
-                <FolderOpen
-                  size={22}
-                />
-
-              </div>
-
-
-              <div className="min-w-0">
-
-                <h2 className="truncate font-display text-xl font-bold text-ink">
-
-                  {project?.project_name ||
-                    "Project"}
-
-                </h2>
-
-
-                <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-slate-light">
-
-                  <span className="inline-flex items-center gap-1.5">
-
-                    <Users size={13} />
-
-                    {candidates.length}
-                    {" "}
-                    candidates
-
-                  </span>
-
-
-                  {project?.first_created_at && (
-
-                    <span className="inline-flex items-center gap-1.5">
-
-                      <CalendarDays
-                        size={13}
-                      />
-
-                      {new Date(
-                        project.first_created_at
-                      ).toLocaleDateString()}
-
-                    </span>
-
-                  )}
-
-                </div>
-
-              </div>
-
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <h2 className="truncate font-display text-xl font-bold text-ink">
+                {project?.project_name || project?.name || "Project"}
+              </h2>
+              <p className="mt-1 text-xs text-slate-light">
+                {candidates.length} pipeline candidates
+              </p>
             </div>
-
-
             <button
               type="button"
               onClick={onClose}
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-light hover:bg-surface hover:text-ink"
             >
-
               <X size={20} />
-
             </button>
-
           </div>
 
-
-          {!isLoading && (
-
-            <div className="mt-5 grid grid-cols-3 gap-3">
-
-              <div className="rounded-xl bg-surface px-4 py-3">
-
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-light">
-                  Total
-                </p>
-
-                <p className="mt-1 font-display text-xl font-bold text-ink">
-                  {candidates.length}
-                </p>
-
-              </div>
-
-
-              <div className="rounded-xl bg-green-50 px-4 py-3">
-
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-green-600">
-                  Not Sent
-                </p>
-
-                <p className="mt-1 font-display text-xl font-bold text-green-700">
-                  {notSentCandidates.length}
-                </p>
-
-              </div>
-
-
-              <div className="rounded-xl bg-blue-50 px-4 py-3">
-
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-blue-600">
-                  Sent
-                </p>
-
-                <p className="mt-1 font-display text-xl font-bold text-blue-700">
-                  {sentCandidates.length}
-                </p>
-
-              </div>
-
+          {!isLoading && candidates.length > 0 && (
+            <div className="relative mt-4">
+              <Search
+                size={16}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-light"
+              />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search candidate, role, company, location..."
+                className="input-field pl-10"
+              />
             </div>
-
           )}
-
         </div>
 
-
-        {/* TABS */}
-
-        {!isLoading && (
-
-          <div className="shrink-0 border-b border-slate-200 bg-white px-6">
-
-            <div className="flex gap-6">
-
-              {[
-                [
-                  "all",
-                  "All",
-                  candidates.length,
-                ],
-                [
-                  "notSent",
-                  "Not Sent",
-                  notSentCandidates.length,
-                ],
-                [
-                  "sent",
-                  "Sent",
-                  sentCandidates.length,
-                ],
-              ].map(
-                ([
-                  value,
-                  label,
-                  count,
-                ]) => (
-
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => {
-                      setActiveTab(
-                        value
-                      );
-
-                      setStatusFilter(
-                        "all"
-                      );
-                    }}
-                    className={`relative py-4 text-xs font-semibold ${
-                      activeTab === value
-                        ? "text-primary"
-                        : "text-slate-light hover:text-ink"
-                    }`}
-                  >
-
-                    {label}
-
-                    <span className="ml-2 rounded-full bg-surface px-2 py-0.5 text-[10px]">
-                      {count}
-                    </span>
-
-
-                    {activeTab ===
-                      value && (
-
-                      <span className="absolute inset-x-0 bottom-0 h-0.5 bg-primary" />
-
-                    )}
-
-                  </button>
-
-                )
-              )}
-
-            </div>
-
-          </div>
-
-        )}
-
-
-        {/* SEARCH */}
-
-        {!isLoading && (
-
-          <div className="shrink-0 border-b border-slate-200 bg-white px-6 py-4">
-
-            <div className="flex flex-col gap-3 sm:flex-row">
-
-              <div className="relative flex-1">
-
-                <Search
-                  size={16}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-light"
-                />
-
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) =>
-                    setSearchTerm(
-                      e.target.value
-                    )
-                  }
-                  placeholder="Search candidate, headline, location..."
-                  className="input-field pl-10"
-                />
-
-              </div>
-
-
-              <div className="relative">
-
-                <button
-                  type="button"
-                  onClick={() =>
-                    setShowFilter(
-                      (prev) => !prev
-                    )
-                  }
-                  className="flex h-11 min-w-[190px] items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 text-xs font-semibold text-ink"
-                >
-
-                  <span className="flex items-center gap-2">
-
-                    <Filter size={14} />
-
-                    Filter
-
-                  </span>
-
-
-                  <ChevronDown
-                    size={14}
-                  />
-
-                </button>
-
-
-                {showFilter && (
-
-                  <div className="absolute right-0 top-12 z-30 w-60 overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl">
-
-                    {[
-                      [
-                        "all",
-                        "All Candidates",
-                      ],
-                      [
-                        "inmailSent",
-                        "InMail Sent",
-                      ],
-                      [
-                        "connectionSent",
-                        "Connection Sent",
-                      ],
-                      [
-                        "inmailNotSent",
-                        "InMail Not Sent",
-                      ],
-                      [
-                        "connectionNotSent",
-                        "Connection Not Sent",
-                      ],
-                    ].map(
-                      ([
-                        value,
-                        label,
-                      ]) => (
-
-                        <button
-                          key={value}
-                          type="button"
-                          onClick={() => {
-
-                            setStatusFilter(
-                              value
-                            );
-
-                            setShowFilter(
-                              false
-                            );
-
-                          }}
-                          className="w-full rounded-lg px-3 py-2.5 text-left text-xs font-medium hover:bg-surface"
-                        >
-
-                          {label}
-
-                        </button>
-
-                      )
-                    )}
-
-                  </div>
-
-                )}
-
-              </div>
-
-            </div>
-
-
-            <div className="mt-3 flex justify-between">
-
-              <p className="text-xs text-slate-light">
-
-                Showing{" "}
-
-                <b className="text-ink">
-                  {
-                    filteredCandidates.length
-                  }
-                </b>
-
-                {" "}candidates
-
-              </p>
-
-
-              {(searchTerm ||
-                statusFilter !==
-                  "all") && (
-
-                <button
-                  type="button"
-                  onClick={() => {
-
-                    setSearchTerm(
-                      ""
-                    );
-
-                    setStatusFilter(
-                      "all"
-                    );
-
-                  }}
-                  className="text-xs font-semibold text-primary"
-                >
-                  Clear filters
-                </button>
-
-              )}
-
-            </div>
-
-          </div>
-
-        )}
-
-
-        {/* CANDIDATES */}
-
-        <div className="min-h-0 flex-1 overflow-y-auto p-6">
-
+        <div className="min-h-0 flex-1 overflow-y-auto p-5">
           {isLoading ? (
-
-            <div className="flex min-h-[300px] items-center justify-center">
-
-              <Loader2
-                size={30}
-                className="animate-spin text-primary"
-              />
-
+            <div className="flex min-h-[400px] items-center justify-center">
+              <Loader2 size={30} className="animate-spin text-primary" />
             </div>
-
-          ) : filteredCandidates.length === 0 ? (
-
-            <div className="flex min-h-[300px] items-center justify-center text-center">
-
+          ) : visibleCandidates.length === 0 ? (
+            <div className="flex min-h-[350px] items-center justify-center text-center">
               <div>
-
-                <Users
-                  size={35}
-                  className="mx-auto text-slate-light"
-                />
-
+                <Users size={36} className="mx-auto text-slate-light" />
                 <h3 className="mt-3 font-display text-sm font-bold text-ink">
                   No candidates found
                 </h3>
-
                 <p className="mt-1 text-xs text-slate-light">
-                  Try changing the filters.
+                  {searchTerm ? "Try a different search." : "This project has no pipeline candidates."}
                 </p>
-
               </div>
-
             </div>
-
           ) : (
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-
-              {filteredCandidates.map(
-                (candidate) => (
-
-                  <CandidateCard
-                    key={
-                      candidate.candidate_id
-                    }
-                    candidate={
-                      candidate
-                    }
-                  />
-
-                )
-              )}
-
+            <div className="space-y-4">
+              {visibleCandidates.map((candidate, index) => (
+                <CandidateCard
+                  key={candidate?.profile?.id || candidate?.profile?.candidate_id || index}
+                  candidate={candidate}
+                />
+              ))}
             </div>
-
           )}
-
         </div>
 
+        {!isLoading && filteredCandidates.length > 0 && (
+          <div className="flex shrink-0 items-center justify-between border-t border-slate-200 bg-white px-6 py-4">
+            <p className="text-xs text-slate-light">
+              Showing {((page - 1) * pageSize) + 1}–{Math.min(page * pageSize, filteredCandidates.length)} of {filteredCandidates.length}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={page === 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Previous
+              </button>
+              <span className="rounded-lg bg-surface px-3 py-2 text-xs font-semibold">
+                {page} / {totalPages}
+              </span>
+              <button
+                type="button"
+                disabled={page === totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
-
     </div>
   );
 }
@@ -945,6 +514,12 @@ export default function ProjectAutomationV2() {
   const [projectsCollapsed, setProjectsCollapsed] =
     useState(false);
 
+  // User can work in one mode at a time:
+  // - create: build and run a new outreach pipeline
+  // - existing: browse existing projects and their candidates
+  const [activeMode, setActiveMode] =
+    useState("create");
+
 
   /* =======================================================
      Selected Project
@@ -965,50 +540,54 @@ export default function ProjectAutomationV2() {
   ======================================================= */
 
   async function loadProjects() {
-
     setIsLoadingProjects(true);
 
     try {
-
-      const response =
-        await fetch(
-          `${API_BASE_URL}/automation/projects`
-        );
-
-      if (!response.ok) {
-
-        throw new Error(
-          "Failed to fetch projects"
-        );
-
-      }
-
-      const data =
-        await response.json();
-
-      setProjects(
-        Array.isArray(data)
-          ? data
-          : []
+      const response = await fetch(
+        `${UNIPILE_BASE_URL}/linkedin/recruiter/projects?status=ACTIVE&sort_by=NEWEST_TO_OLDEST&limit=100`,
+        {
+          headers: {
+            "X-API-KEY": UNIPILE_API_KEY,
+            accept: "application/json",
+          },
+        }
       );
 
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Failed to fetch projects");
+      }
+
+      const json = await response.json();
+      const projectList = Array.isArray(json?.data) ? json.data : [];
+
+      setProjects(
+        projectList.map((project) => {
+          const stages = project?.pipeline?.stages || [];
+          const candidateCount = stages.reduce(
+            (sum, stage) => sum + Number(stage?.candidates_count || 0),
+            0
+          );
+
+          return {
+            ...project,
+            project_id: project.id,
+            project_name: project.name,
+            candidate_count: candidateCount,
+            first_created_at: project.created_at,
+          };
+        })
+      );
     } catch (error) {
-
-      console.error(error);
-
+      console.error("Load Unipile projects error:", error);
       setToast({
         type: "error",
-        message:
-          "Couldn't load existing projects.",
+        message: error?.message || "Couldn't load existing projects.",
       });
-
     } finally {
-
       setIsLoadingProjects(false);
-
     }
   }
-
 
   useEffect(() => {
     loadProjects();
@@ -1019,74 +598,62 @@ export default function ProjectAutomationV2() {
      Open Project
   ======================================================= */
 
-  async function handleProjectClick(
-    project
-  ) {
-
-    setSelectedProject(
-      project
-    );
-
+  async function handleProjectClick(project) {
+    // Selecting an existing project automatically switches to
+    // the existing-project workspace, so the run form is hidden.
+    setActiveMode("existing");
+    setSelectedProject(project);
     setProjectCandidates([]);
-
-    setIsLoadingCandidates(
-      true
-    );
+    setIsLoadingCandidates(true);
 
     try {
-
-      const response =
-        await fetch(
-          `${API_BASE_URL}/automation/projects/${project.project_id}`
-        );
+      const response = await fetch(
+        `${UNIPILE_BASE_URL}/linkedin/recruiter/projects/${project.project_id}/pipeline?limit=100`,
+        {
+          method: "POST",
+          headers: {
+            "X-API-KEY": UNIPILE_API_KEY,
+            accept: "application/json",
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({}),
+        }
+      );
 
       if (!response.ok) {
-
-        throw new Error(
-          "Failed to fetch project"
-        );
-
+        const errorText = await response.text();
+        throw new Error(errorText || "Failed to fetch project candidates");
       }
 
-      const data =
-        await response.json();
-
-      setProjectCandidates(
-        data?.candidates || []
-      );
-
+      const data = await response.json();
+      setProjectCandidates(Array.isArray(data?.data) ? data.data : []);
     } catch (error) {
-
-      console.error(error);
-
+      console.error("Load Unipile pipeline error:", error);
       setToast({
         type: "error",
-        message:
-          "Couldn't load project candidates.",
+        message: error?.message || "Couldn't load project candidates.",
       });
-
-      setSelectedProject(
-        null
-      );
-
+      setSelectedProject(null);
     } finally {
-
-      setIsLoadingCandidates(
-        false
-      );
-
+      setIsLoadingCandidates(false);
     }
   }
 
-
   function closeProjectModal() {
 
-    setSelectedProject(
-      null
-    );
-
+    setSelectedProject(null);
     setProjectCandidates([]);
 
+  }
+
+  function switchToCreateMode() {
+    setActiveMode("create");
+    setSelectedProject(null);
+    setProjectCandidates([]);
+  }
+
+  function switchToExistingMode() {
+    setActiveMode("existing");
   }
 
 
@@ -1408,20 +975,188 @@ export default function ProjectAutomationV2() {
 
       <div className="mx-auto max-w-7xl px-6 py-8">
 
-        <div
-          className={`grid grid-cols-1 items-start gap-6 ${
-            projectsCollapsed
-              ? "lg:grid-cols-[minmax(0,1fr)_72px]"
-              : "lg:grid-cols-[minmax(0,1fr)_360px]"
-          }`}
-        >
+        {/* ===================================================
+            WORKSPACE SWITCHER
+        =================================================== */}
 
+        <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={switchToCreateMode}
+              className={`flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-all ${
+                activeMode === "create"
+                  ? "bg-primary text-white shadow-sm"
+                  : "text-slate-600 hover:bg-surface hover:text-primary"
+              }`}
+            >
+              <Rocket size={16} />
+              Create Outreach Pipeline
+            </button>
 
-          {/* =================================================
-              FORM
-          ================================================= */}
+            <button
+              type="button"
+              onClick={switchToExistingMode}
+              className={`flex items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-all ${
+                activeMode === "existing"
+                  ? "bg-primary text-white shadow-sm"
+                  : "text-slate-600 hover:bg-surface hover:text-primary"
+              }`}
+            >
+              <FolderOpen size={16} />
+              View Existing Projects
+            </button>
+          </div>
+        </div>
 
-          <section className="card p-8">
+        {activeMode === "existing" ? (
+          <div
+            className={`grid grid-cols-1 items-start gap-6 ${
+              projectsCollapsed
+                ? "lg:grid-cols-[72px_minmax(0,1fr)]"
+                : "lg:grid-cols-[360px_minmax(0,1fr)]"
+            }`}
+          >
+            {/* =================================================
+                EXISTING PROJECTS
+            ================================================= */}
+            <aside className="lg:sticky lg:top-6">
+              <section className="card overflow-hidden">
+                <div className={projectsCollapsed ? "px-2 py-3" : "px-5 py-5"}>
+                  {projectsCollapsed ? (
+                    <div className="flex flex-col items-center gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setProjectsCollapsed(false)}
+                        className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-light hover:bg-surface hover:text-primary"
+                        title="Expand projects"
+                      >
+                        <PanelLeftOpen size={18} />
+                      </button>
+                      <div className="h-px w-8 bg-slate-200" />
+                      <FolderOpen size={18} className="text-primary" />
+                      <span className="rounded-full bg-surface px-2 py-1 text-[10px] font-bold">
+                        {projects.length}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                          <FolderOpen size={18} />
+                        </div>
+                        <div>
+                          <h2 className="font-display text-base font-bold text-ink">Existing Projects</h2>
+                          <p className="text-xs text-slate-light">Select a project to view candidates</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="rounded-full bg-surface px-2.5 py-1 text-xs font-bold">{projects.length}</span>
+                        <button
+                          type="button"
+                          onClick={() => setProjectsCollapsed(true)}
+                          className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-light hover:bg-surface hover:text-primary"
+                          title="Collapse projects"
+                        >
+                          <PanelLeftClose size={17} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {!projectsCollapsed && (
+                  <div className="max-h-[calc(100vh-190px)] overflow-y-auto p-4">
+                    {isLoadingProjects ? (
+                      <div className="flex justify-center py-10">
+                        <Loader2 size={24} className="animate-spin text-primary" />
+                      </div>
+                    ) : projects.length === 0 ? (
+                      <div className="py-10 text-center">
+                        <FolderOpen size={25} className="mx-auto text-slate-light" />
+                        <p className="mt-3 text-sm font-semibold">No projects yet</p>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col gap-3">
+                        {projects.map((project) => (
+                          <button
+                            key={project.project_id}
+                            type="button"
+                            onClick={() => handleProjectClick(project)}
+                            className={`group w-full rounded-2xl border p-4 text-left transition-all ${
+                              selectedProject?.project_id === project.project_id
+                                ? "border-primary bg-primary/[0.04] shadow-sm"
+                                : "border-slate-200 bg-white hover:border-primary/40 hover:bg-primary/[0.03] hover:shadow-md"
+                            }`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${selectedProject?.project_id === project.project_id ? "bg-primary/10 text-primary" : "bg-surface text-slate"}`}>
+                                <FolderOpen size={17} />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <h3 className="truncate font-display text-sm font-bold text-ink">{project.project_name}</h3>
+                                <p className="mt-2 text-xs text-slate-light">
+                                  <Users size={12} className="mr-1 inline" />
+                                  {project.candidate_count} candidates
+                                </p>
+                                {project.first_created_at && (
+                                  <p className="mt-1.5 text-[10px] text-slate-light">
+                                    Created {new Date(project.first_created_at).toLocaleDateString()}
+                                  </p>
+                                )}
+                              </div>
+                              <span className="text-slate-300 group-hover:text-primary">→</span>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </section>
+            </aside>
+
+            <div className="min-w-0">
+              <div className="mb-4 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">Existing Project Workspace</p>
+                  <p className="mt-1 text-sm text-slate-light">Review candidates without accidentally starting a new pipeline.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={switchToCreateMode}
+                  className="hidden shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 hover:border-primary/40 hover:text-primary sm:inline-flex"
+                >
+                  <Rocket size={14} />
+                  Create New Pipeline
+                </button>
+              </div>
+
+              <ProjectCandidatesPanel
+                project={selectedProject}
+                candidates={projectCandidates}
+                isLoading={isLoadingCandidates}
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="mx-auto max-w-4xl">
+            <div className="mb-5 flex items-center justify-between gap-4">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">New Outreach</p>
+                <p className="mt-1 text-sm text-slate-light">Create a new project and start candidate outreach.</p>
+              </div>
+              <button
+                type="button"
+                onClick={switchToExistingMode}
+                className="inline-flex shrink-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 hover:border-primary/40 hover:text-primary"
+              >
+                <FolderOpen size={14} />
+                View Existing
+              </button>
+            </div>
+
+            <section className="card p-8">
 
             <div className="flex items-start justify-between">
 
@@ -1791,267 +1526,15 @@ export default function ProjectAutomationV2() {
 
             </div>
 
-          </section>
-
-
-          {/* =================================================
-              PROJECT PANEL
-          ================================================= */}
-
-          <aside className="lg:sticky lg:top-6">
-
-            <section className="card overflow-hidden">
-
-              <div
-                className={
-                  projectsCollapsed
-                    ? "px-2 py-3"
-                    : "px-5 py-5"
-                }
-              >
-
-                {projectsCollapsed ? (
-
-                  <div className="flex flex-col items-center gap-3">
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setProjectsCollapsed(
-                          false
-                        )
-                      }
-                      className="flex h-10 w-10 items-center justify-center rounded-xl text-slate-light hover:bg-surface hover:text-primary"
-                    >
-
-                      <PanelLeftOpen
-                        size={18}
-                      />
-
-                    </button>
-
-
-                    <div className="h-px w-8 bg-slate-200" />
-
-
-                    <FolderOpen
-                      size={18}
-                      className="text-primary"
-                    />
-
-
-                    <span className="rounded-full bg-surface px-2 py-1 text-[10px] font-bold">
-                      {
-                        projects.length
-                      }
-                    </span>
-
-                  </div>
-
-                ) : (
-
-                  <div className="flex items-center justify-between">
-
-                    <div className="flex items-center gap-3">
-
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-
-                        <FolderOpen
-                          size={18}
-                        />
-
-                      </div>
-
-
-                      <div>
-
-                        <h2 className="font-display text-base font-bold text-ink">
-                          Existing Projects
-                        </h2>
-
-                        <p className="text-xs text-slate-light">
-                          Click to preview
-                        </p>
-
-                      </div>
-
-                    </div>
-
-
-                    <div className="flex items-center gap-2">
-
-                      <span className="rounded-full bg-surface px-2.5 py-1 text-xs font-bold">
-
-                        {
-                          projects.length
-                        }
-
-                      </span>
-
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setProjectsCollapsed(
-                            true
-                          )
-                        }
-                        className="flex h-9 w-9 items-center justify-center rounded-lg text-slate-light hover:bg-surface hover:text-primary"
-                      >
-
-                        <PanelLeftClose
-                          size={17}
-                        />
-
-                      </button>
-
-                    </div>
-
-                  </div>
-
-                )}
-
-              </div>
-
-
-              {!projectsCollapsed && (
-
-                <div className="max-h-[calc(100vh-190px)] overflow-y-auto p-4">
-
-                  {isLoadingProjects ? (
-
-                    <div className="flex justify-center py-10">
-
-                      <Loader2
-                        size={24}
-                        className="animate-spin text-primary"
-                      />
-
-                    </div>
-
-                  ) : projects.length ===
-                    0 ? (
-
-                    <div className="py-10 text-center">
-
-                      <FolderOpen
-                        size={25}
-                        className="mx-auto text-slate-light"
-                      />
-
-                      <p className="mt-3 text-sm font-semibold">
-                        No projects yet
-                      </p>
-
-                    </div>
-
-                  ) : (
-
-                    <div className="flex flex-col gap-3">
-
-                      {projects.map(
-                        (project) => (
-
-                          <button
-                            key={
-                              project.project_id
-                            }
-                            type="button"
-                            onClick={() =>
-                              handleProjectClick(
-                                project
-                              )
-                            }
-                            className="group w-full rounded-2xl border border-slate-200 bg-white p-4 text-left hover:border-primary/40 hover:bg-primary/[0.03] hover:shadow-md"
-                          >
-
-                            <div className="flex items-start gap-3">
-
-                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-surface text-slate group-hover:bg-primary/10 group-hover:text-primary">
-
-                                <FolderOpen
-                                  size={17}
-                                />
-
-                              </div>
-
-
-                              <div className="min-w-0 flex-1">
-
-                                <h3 className="truncate font-display text-sm font-bold text-ink">
-
-                                  {
-                                    project.project_name
-                                  }
-
-                                </h3>
-
-
-                                <p className="mt-2 text-xs text-slate-light">
-
-                                  <Users
-                                    size={12}
-                                    className="mr-1 inline"
-                                  />
-
-                                  {
-                                    project.candidate_count
-                                  }
-
-                                  {" "}
-                                  candidates
-
-                                </p>
-
-
-                                {project.first_created_at && (
-
-                                  <p className="mt-1.5 text-[10px] text-slate-light">
-
-                                    Created{" "}
-
-                                    {new Date(
-                                      project.first_created_at
-                                    ).toLocaleDateString()}
-
-                                  </p>
-
-                                )}
-
-                              </div>
-
-
-                              <span className="text-slate-300 group-hover:text-primary">
-                                →
-                              </span>
-
-                            </div>
-
-                          </button>
-
-                        )
-                      )}
-
-                    </div>
-
-                  )}
-
-                </div>
-
-              )}
-
             </section>
-
-          </aside>
-
-        </div>
-
+          </div>
+        )}
 
         {/* ===================================================
             RESULT
         =================================================== */}
 
-        {result && (
+        {activeMode === "create" && result && (
 
           <section className="card mt-6 p-6">
 
@@ -2088,30 +1571,6 @@ export default function ProjectAutomationV2() {
         )}
 
       </div>
-
-
-      {/* ===================================================
-          PROJECT MODAL
-      =================================================== */}
-
-      {selectedProject && (
-
-        <ProjectDetailsModal
-          project={
-            selectedProject
-          }
-          candidates={
-            projectCandidates
-          }
-          isLoading={
-            isLoadingCandidates
-          }
-          onClose={
-            closeProjectModal
-          }
-        />
-
-      )}
 
 
       <Toast
