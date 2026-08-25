@@ -29,18 +29,11 @@ import {
 
 import { useAuth } from "../context/AuthContext";
 
-import {
-  extractJobTitleAndSkills,
-  resolveLinkedInCompany,
-  runOutreachPipeline,
-  normalizeSeniority,
-} from "../services/outreachPipeline";
+// The search form uses the two automation webhook endpoints directly.
+// Existing project loading / candidate preview remains unchanged.
+
 
 import Toast from "../components/postAssistant/Toast";
-
-import SearchField from "../components/projectAutomation/SearchField";
-
-import SeniorityBucketBox from "../components/projectAutomation/SeniorityBucketBox";
 
 
 /* =========================================================
@@ -54,40 +47,6 @@ const API_BASE_URL =
 /* =========================================================
    Constants
 ========================================================= */
-
-const EMPTY_PARAM = {
-  id: "",
-  title: "",
-};
-
-
-/* =========================================================
-   Read Only Field
-========================================================= */
-
-function ReadOnlyField({
-  label,
-  value,
-}) {
-
-  return (
-    <div>
-
-      <label className="field-label">
-        {label}
-      </label>
-
-      <input
-        type="text"
-        value={value || ""}
-        readOnly
-        disabled
-        className="input-field cursor-not-allowed bg-surface text-slate-light"
-      />
-
-    </div>
-  );
-}
 
 
 /* =========================================================
@@ -943,8 +902,14 @@ export default function ProjectAutomationV2() {
   const [isFetchingDetails, setIsFetchingDetails] =
     useState(false);
 
-  const [keywords, setKeywords] =
-    useState([""]);
+  const [roles, setRoles] =
+    useState([]);
+
+  const [companies, setCompanies] =
+    useState([]);
+
+  const [locations, setLocations] =
+    useState([]);
 
   const [inmailMessage, setInmailMessage] =
     useState("");
@@ -954,44 +919,11 @@ export default function ProjectAutomationV2() {
 
 
   /* =======================================================
-     Company
-  ======================================================= */
-
-  const [company, setCompany] =
-    useState(EMPTY_PARAM);
-
-  const [locations, setLocations] =
-    useState([EMPTY_PARAM]);
-
-
-  /* =======================================================
-     Seniority
-  ======================================================= */
-
-  const [seniorityInclude, setSeniorityInclude] =
-    useState([]);
-
-  const [seniorityExclude, setSeniorityExclude] =
-    useState([]);
-
-
-  /* =======================================================
-     Target Companies
-  ======================================================= */
-
-  const [targetCompanies, setTargetCompanies] =
-    useState([]);
-
-
-  /* =======================================================
      Pipeline
   ======================================================= */
 
   const [isRunning, setIsRunning] =
     useState(false);
-
-  const [runningCompanyIndex, setRunningCompanyIndex] =
-    useState(null);
 
   const [toast, setToast] =
     useState(null);
@@ -1159,244 +1091,49 @@ export default function ProjectAutomationV2() {
 
 
   /* =======================================================
-     Seniority
+     Editable Search Values
   ======================================================= */
 
-  function toggleInclude(
-    bucket
-  ) {
-
-    setSeniorityInclude(
-      (prev) => {
-
-        const isAdding =
-          !prev.includes(
-            bucket
-          );
-
-
-        if (isAdding) {
-
-          setSeniorityExclude(
-            (exclude) =>
-              exclude.filter(
-                (b) =>
-                  b !== bucket
-              )
-          );
-
-
-          return [
-            ...prev,
-            bucket,
-          ];
-
-        }
-
-
-        return prev.filter(
-          (b) =>
-            b !== bucket
-        );
-
-      }
+  function updateRole(index, value) {
+    setRoles((prev) =>
+      prev.map((item, i) => (i === index ? value : item))
     );
-
   }
 
-
-  function toggleExclude(
-    bucket
-  ) {
-
-    setSeniorityExclude(
-      (prev) =>
-        prev.includes(bucket)
-          ? prev.filter(
-              (b) =>
-                b !== bucket
-            )
-          : [
-              ...prev,
-              bucket,
-            ]
-    );
-
+  function addRole() {
+    setRoles((prev) => [...prev, ""]);
   }
 
-
-  /* =======================================================
-     Keywords
-  ======================================================= */
-
-  function updateKeyword(
-    index,
-    value
-  ) {
-
-    setKeywords(
-      (prev) =>
-        prev.map(
-          (keyword, i) =>
-            i === index
-              ? value
-              : keyword
-        )
-    );
-
+  function removeRole(index) {
+    setRoles((prev) => prev.filter((_, i) => i !== index));
   }
 
-
-  function addKeyword() {
-
-    setKeywords(
-      (prev) => [
-        ...prev,
-        "",
-      ]
+  function updateCompany(index, value) {
+    setCompanies((prev) =>
+      prev.map((item, i) => (i === index ? value : item))
     );
-
   }
 
-
-  function removeKeyword(
-    index
-  ) {
-
-    setKeywords(
-      (prev) =>
-        prev.filter(
-          (_, i) =>
-            i !== index
-        )
-    );
-
+  function addCompany() {
+    setCompanies((prev) => [...prev, ""]);
   }
 
-
-  /* =======================================================
-     Locations
-  ======================================================= */
-
-  function updateLocation(
-    index,
-    item
-  ) {
-
-    setLocations(
-      (prev) =>
-        prev.map(
-          (location, i) =>
-            i === index
-              ? {
-                  id:
-                    item.id,
-                  title:
-                    item.title,
-                }
-              : location
-        )
-    );
-
+  function removeCompany(index) {
+    setCompanies((prev) => prev.filter((_, i) => i !== index));
   }
 
+  function updateLocation(index, value) {
+    setLocations((prev) =>
+      prev.map((item, i) => (i === index ? value : item))
+    );
+  }
 
   function addLocation() {
-
-    setLocations(
-      (prev) => [
-        ...prev,
-        EMPTY_PARAM,
-      ]
-    );
-
+    setLocations((prev) => [...prev, ""]);
   }
 
-
-  function removeLocation(
-    index
-  ) {
-
-    setLocations(
-      (prev) =>
-        prev.filter(
-          (_, i) =>
-            i !== index
-        )
-    );
-
-  }
-
-
-  /* =======================================================
-     Target Companies
-  ======================================================= */
-
-  function addTargetCompany() {
-
-    setTargetCompanies(
-      (prev) => [
-        ...prev,
-        {
-          name: "",
-          id: "",
-          matchedTitle: "",
-          pictureUrl: "",
-        },
-      ]
-    );
-
-  }
-
-
-  function updateTargetCompany(
-    index,
-    value
-  ) {
-
-    setTargetCompanies(
-      (prev) =>
-        prev.map(
-          (company, i) =>
-            i === index
-              ? {
-                  ...company,
-
-                  /*
-                   * If user edits the company,
-                   * old LinkedIn ID is invalid.
-                   */
-
-                  name:
-                    value,
-
-                  id: "",
-
-                  matchedTitle:
-                    "",
-
-                  pictureUrl:
-                    "",
-                }
-              : company
-        )
-    );
-
-  }
-
-
-  function removeTargetCompany(
-    index
-  ) {
-
-    setTargetCompanies(
-      (prev) =>
-        prev.filter(
-          (_, i) =>
-            i !== index
-        )
-    );
-
+  function removeLocation(index) {
+    setLocations((prev) => prev.filter((_, i) => i !== index));
   }
 
 
@@ -1405,316 +1142,83 @@ export default function ProjectAutomationV2() {
   ======================================================= */
 
   async function handleFetchDetails() {
+    const trimmed = jobDescription.trim();
 
-    const trimmed =
-      jobDescription.trim();
-
-
-    if (
-      !trimmed ||
-      isFetchingDetails
-    ) {
+    if (!trimmed || isFetchingDetails) {
       return;
     }
 
-
-    setIsFetchingDetails(
-      true
-    );
-
+    setIsFetchingDetails(true);
 
     try {
-
-      const response =
-        await extractJobTitleAndSkills(
-          trimmed
-        );
-
-
-      if (
-        !response?.success ||
-        !response?.data
-      ) {
-
-        throw new Error(
-          "Invalid job details response."
-        );
-
-      }
-
-
-      const data =
-        response.data;
-
-
-      /* =================================================
-         Job Title
-      ================================================= */
-
-      const jobTitle =
-        data.job_title ||
-        "";
-
-
-      /*
-       * If project name is empty,
-       * use job title.
-       */
-
-      if (
-        !projectName.trim() &&
-        jobTitle
-      ) {
-
-        setProjectName(
-          jobTitle
-        );
-
-      }
-
-
-      /* =================================================
-         Keywords
-      ================================================= */
-
-      const extractedKeywords = [
-        jobTitle,
-        ...(data.skills || []),
-      ].filter(Boolean);
-
-
-      setKeywords(
-        extractedKeywords.length
-          ? extractedKeywords
-          : [""]
-      );
-
-
-      /* =================================================
-         Messages
-      ================================================= */
-
-      setInmailMessage(
-        data.inMailMessage ||
-        ""
-      );
-
-
-      setConnectionMessage(
-        data.connectionNote ||
-        ""
-      );
-
-
-      /* =================================================
-         Seniority
-      ================================================= */
-
-      if (
-        data.seniority_level
-      ) {
-
-        const seniority =
-          normalizeSeniority(
-            data.seniority_level
-          );
-
-
-        if (seniority) {
-
-          setSeniorityInclude([
-            seniority,
-          ]);
-
-          /*
-           * Make sure same seniority
-           * is not excluded.
-           */
-
-          setSeniorityExclude(
-            (prev) =>
-              prev.filter(
-                (item) =>
-                  item !==
-                  seniority
-              )
-          );
-
+      const response = await fetch(
+        `${API_BASE_URL}/webhook/extract-values`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            job_description: trimmed,
+          }),
         }
-
-      }
-
-
-      /* =================================================
-         Company List
-      ================================================= */
-
-      const companies =
-        Array.isArray(
-          data.company_list
-        )
-          ? data.company_list
-          : [];
-
-
-      setTargetCompanies(
-        companies.map(
-          (companyName) => ({
-            name:
-              companyName,
-
-            id: "",
-
-            matchedTitle:
-              "",
-
-            pictureUrl:
-              "",
-          })
-        )
       );
 
+      const data = await response.json();
+
+      if (!response.ok || !data?.success || !data?.data) {
+        throw new Error(
+          data?.message ||
+            data?.detail ||
+            "Unable to extract values from the job description."
+        );
+      }
+
+      const extracted = data.data;
+
+      const extractedRoles = Array.isArray(extracted.role)
+        ? extracted.role.filter(Boolean)
+        : [];
+
+      const extractedCompanies = Array.isArray(extracted.companies)
+        ? extracted.companies.filter(Boolean)
+        : [];
+
+      const extractedLocations = Array.isArray(extracted.location)
+        ? extracted.location.filter(Boolean)
+        : [];
+
+      setRoles(extractedRoles);
+      setCompanies(extractedCompanies);
+      setLocations(extractedLocations);
+      setInmailMessage(extracted.inMailMessage || "");
+      setConnectionMessage(extracted.connectionNote || "");
+
+      if (!projectName.trim() && extractedRoles.length > 0) {
+        setProjectName(extractedRoles[0]);
+      }
 
       setToast({
         type: "success",
-        message:
-          `Details loaded. ${companies.length} target companies added.`,
+        message: `Details loaded: ${extractedRoles.length} roles, ${extractedCompanies.length} companies and ${extractedLocations.length} locations.`,
       });
-
-
     } catch (error) {
-
-      console.error(
-        "Fetch details error:",
-        error
-      );
-
+      console.error("Fetch details error:", error);
 
       setToast({
         type: "error",
         message:
-          error?.response?.data?.detail ||
-          error?.response?.data?.message ||
-          error.message ||
+          error?.message ||
           "Couldn't fetch job details.",
       });
-
     } finally {
-
-      setIsFetchingDetails(
-        false
-      );
+      setIsFetchingDetails(false);
 
       setTimeout(() => {
         setToast(null);
       }, 3500);
-
     }
   }
-
-
-  /* =======================================================
-     Resolve All Companies
-  ======================================================= */
-
-  async function resolveAllCompanies() {
-  const validCompanies =
-    targetCompanies.filter(
-      (company) =>
-        company.name?.trim()
-    );
-
-  if (!validCompanies.length) {
-    throw new Error(
-      "Please add at least one target company."
-    );
-  }
-
-  const resolvedCompanies = [];
-
-  /*
-   * Resolve company names to
-   * LinkedIn company IDs.
-   *
-   * Example:
-   *
-   * ServiceNow -> 29352
-   * SAP        -> 3185
-   *
-   * This lookup is necessary because
-   * your pipeline requires LinkedIn IDs.
-   */
-
-  for (
-    let index = 0;
-    index < validCompanies.length;
-    index++
-  ) {
-    const company =
-      validCompanies[index];
-
-    setRunningCompanyIndex(
-      index
-    );
-
-    /*
-     * If ID already exists,
-     * don't call Unipile again.
-     */
-
-    if (company.id) {
-      resolvedCompanies.push(
-        company
-      );
-
-      continue;
-    }
-
-    console.log(
-      `🔎 Resolving company ${index + 1}/${validCompanies.length}:`,
-      company.name
-    );
-
-    const resolved =
-      await resolveLinkedInCompany(
-        company.name
-      );
-
-    const resolvedCompany = {
-      ...company,
-
-      id:
-        resolved.id,
-
-      matchedTitle:
-        resolved.matchedTitle,
-
-      pictureUrl:
-        resolved.pictureUrl,
-    };
-
-    resolvedCompanies.push(
-      resolvedCompany
-    );
-
-    /*
-     * Update UI immediately.
-     */
-
-    setTargetCompanies(
-      (prev) =>
-        prev.map(
-          (item) =>
-            item.name ===
-            company.name
-              ? resolvedCompany
-              : item
-        )
-    );
-  }
-
-  return resolvedCompanies;
-}
 
 
   /* =======================================================
@@ -1722,213 +1226,118 @@ export default function ProjectAutomationV2() {
   ======================================================= */
 
   async function handleRunPipeline() {
-  if (isRunning) {
-    return;
-  }
-
-  /* =====================================================
-     Validation
-  ===================================================== */
-
-  if (!projectName.trim()) {
-    setToast({
-      type: "error",
-      message:
-        "Please enter a project name.",
-    });
-
-    return;
-  }
-
-  if (!targetCompanies.length) {
-    setToast({
-      type: "error",
-      message:
-        "Please add at least one target company.",
-    });
-
-    return;
-  }
-
-  setIsRunning(true);
-
-  setRunningCompanyIndex(
-    null
-  );
-
-  setResult(null);
-
-  try {
-    /* ===================================================
-       STEP 1
-       Resolve all company names
-    =================================================== */
-
-    setToast({
-      type: "success",
-      message:
-        "Resolving LinkedIn company IDs...",
-    });
-
-    const resolvedCompanies =
-      await resolveAllCompanies();
-
-    if (
-      !resolvedCompanies.length
-    ) {
-      throw new Error(
-        "No companies could be resolved."
-      );
+    if (isRunning) {
+      return;
     }
 
-    /* ===================================================
-       STEP 2
-       Extract company IDs
-    =================================================== */
+    const cleanRoles = roles.map((item) => item.trim()).filter(Boolean);
+    const cleanCompanies = companies.map((item) => item.trim()).filter(Boolean);
+    const cleanLocations = locations.map((item) => item.trim()).filter(Boolean);
 
-    const companyIds =
-      resolvedCompanies
-        .map(
-          (company) =>
-            company.id
-        )
-        .filter(Boolean);
-
-    if (!companyIds.length) {
-      throw new Error(
-        "No valid LinkedIn company IDs found."
-      );
+    if (!projectName.trim()) {
+      setToast({
+        type: "error",
+        message: "Please enter a project name.",
+      });
+      return;
     }
 
-    console.log(
-      "=========================================="
-    );
+    if (!cleanRoles.length) {
+      setToast({
+        type: "error",
+        message: "Please add at least one job role. Click Fetch Details first or add a role manually.",
+      });
+      return;
+    }
 
-    console.log(
-      "🚀 STARTING BULK PIPELINE"
-    );
+    if (!cleanLocations.length) {
+      setToast({
+        type: "error",
+        message: "Please add at least one location.",
+      });
+      return;
+    }
 
-    console.log(
-      "Total companies:",
-      resolvedCompanies.length
-    );
+    if (!inmailMessage.trim()) {
+      setToast({
+        type: "error",
+        message: "Please provide an InMail message.",
+      });
+      return;
+    }
 
-    console.log(
-      "Company IDs:",
-      companyIds
-    );
+    setIsRunning(true);
+    setResult(null);
 
-    console.log(
-      "=========================================="
-    );
+    const payload = {
+      project_name: projectName.trim(),
+      roles: cleanRoles,
+      companies: cleanCompanies,
+      locations: cleanLocations,
+      inmail_message: inmailMessage.trim(),
+      connection_message: connectionMessage.trim(),
+      limit: 100,
+    };
 
-    /* ===================================================
-       STEP 3
-       ONE PIPELINE REQUEST
-    =================================================== */
+    console.log("Run Outreach Pipeline payload:", payload);
 
-    setToast({
-      type: "success",
-      message:
-        `Starting pipeline for ${companyIds.length} companies...`,
-    });
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/automation/outreach/run`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
 
-    const response =
-      await runOutreachPipeline({
-        projectName:
-          projectName.trim(),
+      const data = await response.json();
 
-        keywords,
+      if (!response.ok) {
+        throw new Error(
+          data?.message ||
+            data?.detail ||
+            data?.error ||
+            "Couldn't run the outreach pipeline."
+        );
+      }
 
-        inmailMessage,
-
-        connectionMessage,
-
-        limit: 100,
-
-        locations,
-
-        seniorityInclude,
-
-        seniorityExclude,
-
-        /*
-         * ALL COMPANY IDs
-         */
-
-        companyIds,
+      setResult({
+        success: true,
+        response: data,
       });
 
-    /* ===================================================
-       STEP 4
-       Save Result
-    =================================================== */
+      setToast({
+        type: "success",
+        message:
+          data?.message ||
+          data?.detail ||
+          "Outreach pipeline started successfully.",
+      });
 
-    setResult({
-      success: true,
+      await loadProjects();
+    } catch (error) {
+      console.error("Outreach pipeline error:", error);
 
-      response,
+      setResult({
+        success: false,
+        error: error?.message || "Couldn't run the pipeline.",
+      });
 
-      companies:
-        resolvedCompanies,
+      setToast({
+        type: "error",
+        message: error?.message || "Couldn't run the pipeline.",
+      });
+    } finally {
+      setIsRunning(false);
 
-      total:
-        resolvedCompanies.length,
-    });
-
-    /* ===================================================
-       Success
-    =================================================== */
-
-    setToast({
-      type: "success",
-      message:
-        `Pipeline started successfully for ${resolvedCompanies.length} companies.`,
-    });
-
-    /* ===================================================
-       Refresh Existing Projects
-    =================================================== */
-
-    await loadProjects();
-
-  } catch (error) {
-    console.error(
-      "❌ Bulk pipeline error:",
-      error
-    );
-
-    const errorMessage =
-      error?.response?.data?.detail ||
-      error?.response?.data?.message ||
-      error?.message ||
-      "Couldn't run the pipeline.";
-
-    setResult({
-      success: false,
-
-      error:
-        errorMessage,
-    });
-
-    setToast({
-      type: "error",
-      message:
-        errorMessage,
-    });
-
-  } finally {
-    setRunningCompanyIndex(
-      null
-    );
-
-    setIsRunning(false);
-
-    setTimeout(() => {
-      setToast(null);
-    }, 5000);
+      setTimeout(() => {
+        setToast(null);
+      }, 5000);
+    }
   }
-}
 
 
   /* =======================================================
@@ -2129,318 +1538,56 @@ export default function ProjectAutomationV2() {
 
 
               {/* =================================================
-                  KEYWORDS
+                  JOB ROLES
               ================================================= */}
 
               <div>
+                <div className="flex items-center justify-between">
+                  <label className="field-label !mb-0">
+                    Job Roles
+                  </label>
 
-                <label className="field-label">
-                  Keywords
-                </label>
+                  <span className="text-xs text-slate-light">
+                    Editable extracted roles
+                  </span>
+                </div>
 
-
-                <div className="flex flex-col gap-3">
-
-                  {keywords.map(
-                    (
-                      keyword,
-                      index
-                    ) => (
-
-                      <div
-                        key={index}
-                        className="flex gap-2"
-                      >
-
+                <div className="mt-3 flex flex-col gap-3">
+                  {roles.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-slate-200 bg-surface px-4 py-4 text-xs text-slate-light">
+                      Click Fetch Details to extract job roles, or add one manually.
+                    </div>
+                  ) : (
+                    roles.map((role, index) => (
+                      <div key={`role-${index}`} className="flex gap-2">
                         <input
                           type="text"
-                          value={keyword}
-                          onChange={(e) =>
-                            updateKeyword(
-                              index,
-                              e.target.value
-                            )
-                          }
-                          placeholder="Enter keyword"
+                          value={role}
+                          onChange={(e) => updateRole(index, e.target.value)}
+                          placeholder="Enter job role"
                           className="input-field"
                         />
 
-
-                        {index ===
-                        0 ? (
-
-                          <button
-                            type="button"
-                            onClick={
-                              addKeyword
-                            }
-                            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-white"
-                          >
-
-                            <Plus
-                              size={18}
-                            />
-
-                          </button>
-
-                        ) : (
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              removeKeyword(
-                                index
-                              )
-                            }
-                            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-spark text-white"
-                          >
-
-                            <X
-                              size={18}
-                            />
-
-                          </button>
-
-                        )}
-
+                        <button
+                          type="button"
+                          onClick={() => removeRole(index)}
+                          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-spark text-white"
+                        >
+                          <X size={18} />
+                        </button>
                       </div>
-
-                    )
+                    ))
                   )}
-
                 </div>
 
-                <p className="mt-2 text-xs text-slate-light">
-                  Keywords are combined using AND.
-                </p>
-
-              </div>
-
-
-              {/* =================================================
-                  OPTIONAL COMPANY SEARCH
-              ================================================= */}
-
-              <div>
-
-                <SearchField
-                  label="Search Company"
-                  type="COMPANY"
-                  placeholder="e.g. Microsoft"
-                  modalTitle="Select a company"
-                  onSelect={(item) =>
-                    setCompany({
-                      id:
-                        item.id,
-                      title:
-                        item.title,
-                    })
-                  }
-                />
-
-
-                <div className="mt-4 grid grid-cols-1 gap-5 sm:grid-cols-2">
-
-                  <ReadOnlyField
-                    label="Company ID"
-                    value={
-                      company.id
-                    }
-                  />
-
-                  <ReadOnlyField
-                    label="Company"
-                    value={
-                      company.title
-                    }
-                  />
-
-                </div>
-
-              </div>
-
-
-              {/* =================================================
-                  LOCATIONS
-              ================================================= */}
-
-              <div>
-
-                <label className="field-label">
-                  Locations
-                </label>
-
-
-                <div className="flex flex-col gap-4">
-
-                  {locations.map(
-                    (
-                      location,
-                      index
-                    ) => (
-
-                      <div
-                        key={index}
-                        className="flex flex-col gap-3"
-                      >
-
-                        <div className="flex items-end gap-2">
-
-                          <div className="flex-1">
-
-                            <SearchField
-                              label={
-                                index ===
-                                0
-                                  ? "Search Location"
-                                  : `Search Location ${
-                                      index +
-                                      1
-                                    }`
-                              }
-                              type="LOCATION"
-                              placeholder="e.g. London"
-                              modalTitle="Select a location"
-                              onSelect={(
-                                item
-                              ) =>
-                                updateLocation(
-                                  index,
-                                  item
-                                )
-                              }
-                            />
-
-                          </div>
-
-
-                          {index ===
-                          0 ? (
-
-                            <button
-                              type="button"
-                              onClick={
-                                addLocation
-                              }
-                              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-white"
-                            >
-
-                              <Plus
-                                size={18}
-                              />
-
-                            </button>
-
-                          ) : (
-
-                            <button
-                              type="button"
-                              onClick={() =>
-                                removeLocation(
-                                  index
-                                )
-                              }
-                              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-spark text-white"
-                            >
-
-                              <X
-                                size={18}
-                              />
-
-                            </button>
-
-                          )}
-
-                        </div>
-
-
-                        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-
-                          <ReadOnlyField
-                            label="Location ID"
-                            value={
-                              location.id
-                            }
-                          />
-
-                          <ReadOnlyField
-                            label="Location"
-                            value={
-                              location.title
-                            }
-                          />
-
-                        </div>
-
-                      </div>
-
-                    )
-                  )}
-
-                </div>
-
-              </div>
-
-
-              {/* =================================================
-                  SENIORITY
-              ================================================= */}
-
-              <div>
-
-                <div className="mb-3 flex items-center justify-between">
-
-                  <label className="field-label !mb-0">
-                    Seniority
-                  </label>
-
-
-                  {seniorityInclude.length >
-                    0 && (
-
-                    <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-semibold text-primary">
-
-                      AI detected:{" "}
-
-                      {seniorityInclude.join(
-                        ", "
-                      )}
-
-                    </span>
-
-                  )}
-
-                </div>
-
-
-                <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-
-                  <SeniorityBucketBox
-                    label="Seniority Include"
-                    selected={
-                      seniorityInclude
-                    }
-                    onToggle={
-                      toggleInclude
-                    }
-                  />
-
-
-                  <SeniorityBucketBox
-                    label="Seniority Exclude"
-                    selected={
-                      seniorityExclude
-                    }
-                    onToggle={
-                      toggleExclude
-                    }
-                    disabledOptions={
-                      seniorityInclude
-                    }
-                  />
-
-                </div>
-
+                <button
+                  type="button"
+                  onClick={addRole}
+                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-primary/40 bg-primary/[0.03] px-4 py-3 text-xs font-semibold text-primary hover:bg-primary/10"
+                >
+                  <Plus size={15} />
+                  Add Job Role
+                </button>
               </div>
 
 
@@ -2449,165 +1596,107 @@ export default function ProjectAutomationV2() {
               ================================================= */}
 
               <div>
-
                 <div className="flex items-center justify-between">
+                  <label className="field-label !mb-0">
+                    Target Companies
+                  </label>
 
-                  <div>
-
-                    <label className="field-label !mb-0">
-                      Target Companies
-                    </label>
-
-                    <p className="mt-1 text-xs text-slate-light">
-                        All selected companies will be included in one pipeline.
-                    </p>
-
-                  </div>
-
-
-                  <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
-
-                    {
-                      targetCompanies.length
-                    }
-
+                  <span className="text-xs text-slate-light">
+                    Editable extracted companies
                   </span>
-
                 </div>
 
-
-                <div className="mt-3 rounded-2xl border border-slate-200 bg-surface p-3">
-
-                  {targetCompanies.length ===
-                  0 ? (
-
-                    <div className="py-8 text-center">
-
-                      <FolderOpen
-                        size={25}
-                        className="mx-auto text-slate-light"
-                      />
-
-                      <p className="mt-2 text-sm font-semibold text-ink">
-                        No target companies
-                      </p>
-
-                      <p className="mt-1 text-xs text-slate-light">
-                        Click Fetch Details or add one manually.
-                      </p>
-
+                <div className="mt-3 flex flex-col gap-3">
+                  {companies.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-slate-200 bg-surface px-4 py-4 text-xs text-slate-light">
+                      Click Fetch Details to extract companies, or add one manually.
                     </div>
-
                   ) : (
+                    companies.map((companyName, index) => (
+                      <div key={`company-${index}`} className="flex gap-2">
+                        <input
+                          type="text"
+                          value={companyName}
+                          onChange={(e) => updateCompany(index, e.target.value)}
+                          placeholder="Enter company name"
+                          className="input-field"
+                        />
 
-                    <div className="max-h-[360px] overflow-y-auto pr-1">
-
-                      <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-
-                        {targetCompanies.map(
-                          (
-                            targetCompany,
-                            index
-                          ) => (
-
-                            <div
-                              key={`${index}-${targetCompany.name}`}
-                              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-2"
-                            >
-
-                              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary">
-
-                                {index +
-                                  1}
-
-                              </div>
-
-
-                              <div className="min-w-0 flex-1">
-
-                                <input
-                                  type="text"
-                                  value={
-                                    targetCompany.name
-                                  }
-                                  onChange={(
-                                    e
-                                  ) =>
-                                    updateTargetCompany(
-                                      index,
-                                      e.target.value
-                                    )
-                                  }
-                                  className="w-full border-0 bg-transparent px-1 py-1 text-xs font-medium text-ink outline-none"
-                                  placeholder="Company name"
-                                />
-
-
-                                {targetCompany.id && (
-
-                                  <p className="px-1 text-[9px] text-green-600">
-
-                                    LinkedIn ID:{" "}
-
-                                    {
-                                      targetCompany.id
-                                    }
-
-                                  </p>
-
-                                )}
-
-                              </div>
-
-
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  removeTargetCompany(
-                                    index
-                                  )
-                                }
-                                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-light hover:bg-red-50 hover:text-red-500"
-                              >
-
-                                <X
-                                  size={15}
-                                />
-
-                              </button>
-
-                            </div>
-
-                          )
-                        )}
-
+                        <button
+                          type="button"
+                          onClick={() => removeCompany(index)}
+                          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-spark text-white"
+                        >
+                          <X size={18} />
+                        </button>
                       </div>
-
-                    </div>
-
+                    ))
                   )}
-
-
-                  <button
-                    type="button"
-                    onClick={
-                      addTargetCompany
-                    }
-                    className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-primary/40 bg-primary/[0.03] px-4 py-3 text-xs font-semibold text-primary hover:bg-primary/10"
-                  >
-
-                    <Plus
-                      size={15}
-                    />
-
-                    Add Company
-
-                  </button>
-
                 </div>
 
+                <button
+                  type="button"
+                  onClick={addCompany}
+                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-primary/40 bg-primary/[0.03] px-4 py-3 text-xs font-semibold text-primary hover:bg-primary/10"
+                >
+                  <Plus size={15} />
+                  Add Company
+                </button>
               </div>
 
+
+              {/* =================================================
+                  LOCATIONS
+              ================================================= */}
+
+              <div>
+                <div className="flex items-center justify-between">
+                  <label className="field-label !mb-0">
+                    Locations
+                  </label>
+
+                  <span className="text-xs text-slate-light">
+                    Editable extracted locations
+                  </span>
+                </div>
+
+                <div className="mt-3 flex flex-col gap-3">
+                  {locations.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-slate-200 bg-surface px-4 py-4 text-xs text-slate-light">
+                      Click Fetch Details to extract locations, or add one manually.
+                    </div>
+                  ) : (
+                    locations.map((location, index) => (
+                      <div key={`location-${index}`} className="flex gap-2">
+                        <input
+                          type="text"
+                          value={location}
+                          onChange={(e) => updateLocation(index, e.target.value)}
+                          placeholder="Enter location"
+                          className="input-field"
+                        />
+
+                        <button
+                          type="button"
+                          onClick={() => removeLocation(index)}
+                          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-spark text-white"
+                        >
+                          <X size={18} />
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={addLocation}
+                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-primary/40 bg-primary/[0.03] px-4 py-3 text-xs font-semibold text-primary hover:bg-primary/10"
+                >
+                  <Plus size={15} />
+                  Add Location
+                </button>
+              </div>
 
               {/* =================================================
                   INMAIL
@@ -2984,103 +2073,15 @@ export default function ProjectAutomationV2() {
                 </h3>
 
                 <p className="text-xs text-slate-light">
-
-                  {result.successful?.length ||
-                    0}
-
-                  {" "}successful /{" "}
-
-                  {result.failed?.length ||
-                    0}
-
-                  {" "}failed
-
+                  {result.success
+                    ? "Outreach request submitted successfully."
+                    : result.error || "The outreach request could not be started."}
                 </p>
 
               </div>
 
             </div>
 
-
-            {result.successful?.length >
-              0 && (
-
-              <div className="mt-5">
-
-                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-green-600">
-                  Successful
-                </p>
-
-
-                <div className="flex flex-wrap gap-2">
-
-                  {result.successful.map(
-                    (item) => (
-
-                      <span
-                        key={
-                          item.companyId
-                        }
-                        className="rounded-full bg-green-50 px-3 py-1.5 text-xs font-medium text-green-700"
-                      >
-
-                        ✓{" "}
-                        {
-                          item.company
-                        }
-
-                      </span>
-
-                    )
-                  )}
-
-                </div>
-
-              </div>
-
-            )}
-
-
-            {result.failed?.length >
-              0 && (
-
-              <div className="mt-5">
-
-                <p className="mb-2 text-xs font-bold uppercase tracking-wide text-red-600">
-                  Failed
-                </p>
-
-
-                <div className="flex flex-col gap-2">
-
-                  {result.failed.map(
-                    (item) => (
-
-                      <div
-                        key={
-                          item.company
-                        }
-                        className="rounded-xl bg-red-50 p-3 text-xs text-red-700"
-                      >
-
-                        <b>
-                          {item.company}
-                        </b>
-
-                        {" — "}
-
-                        {item.error}
-
-                      </div>
-
-                    )
-                  )}
-
-                </div>
-
-              </div>
-
-            )}
 
           </section>
 
